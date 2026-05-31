@@ -16,15 +16,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      # TODO: replace placeholders below with the project's real commands.
-      - name: Install dependencies
-        run: echo "TODO: install deps (e.g. 'uv sync' or 'pip install -e .[dev]')"
+      - name: Install tooling
+        run: pip install ruff
+        # TODO: also install project deps once defined (e.g. 'pip install -e .[dev]')
 
       - name: Lint
-        run: echo "TODO: lint (e.g. 'ruff check .')"
+        run: ruff check .
 
       - name: Format check
-        run: echo "TODO: format check (e.g. 'ruff format --check .')"
+        run: ruff format --check .
 
       - name: Test
         run: echo "TODO: run tests (e.g. 'pytest -q')"

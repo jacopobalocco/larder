@@ -1,0 +1,103 @@
+{
+  "schema_version": 2,
+  "project": "larder",
+  "timestamp": "2026-05-31T00:00:00Z",
+  "mode": "brownfield",
+  "declared_agents": ["claude"],
+  "overall_score": 39,
+  "level": "Partially Ready",
+  "layers": {
+    "portable":        { "score": 36.2, "max": 94.3 },
+    "target_specific": { "score": 2.7, "max": 5.7, "agents": ["claude"] }
+  },
+  "dimensions": {
+    "agent_instructions_context": {
+      "weight": 18, "raw_score": 83.75, "weighted_score": 15.1,
+      "subcriteria": {
+        "primary_instruction_file": { "score": 100, "weight": 25, "layer": "portable", "na": false, "evidence": "AGENTS.md present at root, well-structured." },
+        "instruction_quality":      { "score": 50,  "weight": 25, "layer": "portable", "na": false, "evidence": "Sections present but build/test/lint are TODO placeholders; not yet project-specific.", "why": "Specific guidance prevents wrong assumptions", "consequence": "Generic docs cause incorrect implementations", "fixable_by": "partial", "fix_ref": "Add project paths, conventions, real build/test/lint commands", "effort": "Med" },
+        "instruction_conciseness":  { "score": 100, "weight": 20, "layer": "portable", "na": false, "evidence": "55 lines, no boilerplate/duplication flagged (instruction_audit.py)." },
+        "hierarchical_instructions":{ "score": 75,  "weight": 15, "layer": "portable", "na": false, "evidence": "Single root AGENTS.md; adequate for a tiny single-package repo.", "why": "Scoped files help in large/monorepos", "consequence": "Single root file insufficient for big codebases", "fixable_by": "manual", "fix_ref": "Add per-package AGENTS.md where needed (only when it grows)", "effort": "Med" },
+        "cross_agent_bridge":       { "score": 100, "weight": 15, "layer": "target",   "na": false, "evidence": "CLAUDE.md is a symlink -> AGENTS.md (mode 120000); no duplicated drift." }
+      }
+    },
+    "navigability_code_intelligence": {
+      "weight": 18, "raw_score": 40.0, "weighted_score": 7.2,
+      "subcriteria": {
+        "repo_map_availability":      { "score": 25, "weight": 20, "layer": "portable", "na": false, "evidence": "repo_map.py analyzed 0 source files; structure pointer only in AGENTS.md.", "why": "A map orients agents fast", "consequence": "Without it, agents waste calls exploring", "fixable_by": "partial", "fix_ref": "Generate/commit a repo map once code exists", "effort": "Med" },
+        "semantic_nav_amenability":   { "score": 25, "weight": 18, "layer": "portable", "na": false, "evidence": "No source code, no language-server configs yet.", "why": "Typed/analyzable code enables LSP/Serena", "consequence": "Hard-to-analyze code slows navigation", "fixable_by": "manual", "fix_ref": "Add types and language-server configs as code lands", "effort": "High" },
+        "dependency_structure_clarity":{ "score": 25, "weight": 17, "layer": "portable", "na": false, "evidence": "No build manifest (pyproject.toml) yet; no modules.", "why": "Clear boundaries aid reasoning", "consequence": "Tangled deps confuse agents", "fixable_by": "manual", "fix_ref": "Add pyproject.toml + document module boundaries", "effort": "Med" },
+        "readme_overview":            { "score": 25, "weight": 15, "layer": "portable", "na": false, "evidence": "No README.md; AGENTS.md carries a placeholder overview.", "why": "README is the entry point", "consequence": "No overview slows onboarding", "fixable_by": "partial", "fix_ref": "Add README.md with overview, setup, usage", "effort": "Low" },
+        "machine_readable_contracts": { "score": 50, "weight": 15, "layer": "portable", "na": false, "evidence": "No API boundaries present (not yet applicable).", "why": "Schemas define boundaries precisely", "consequence": "Without contracts, integration guesses", "fixable_by": "manual", "fix_ref": "Add OpenAPI/Protobuf/GraphQL at boundaries when they exist", "effort": "High" },
+        "file_size_sanity":           { "score": 100, "weight": 15, "layer": "portable", "na": false, "evidence": "file_metrics.py: 0 oversized files (>500 LOC)." }
+      }
+    },
+    "testing_feedback": {
+      "weight": 16, "raw_score": 5.0, "weighted_score": 0.8,
+      "subcriteria": {
+        "test_suite_present":       { "score": 0,  "weight": 20, "layer": "portable", "na": false, "evidence": "No tests found.", "why": "Tests verify agent changes", "consequence": "No tests = unverified changes ship", "fixable_by": "partial", "fix_ref": "Add a test suite (unit + integration)", "effort": "High" },
+        "test_commands_documented": { "score": 25, "weight": 20, "layer": "portable", "na": false, "evidence": "AGENTS.md has a test section but as TODO placeholder (test_commands.py: has_test_command=false).", "why": "Agents need to know how to test", "consequence": "Undocumented commands aren't run", "fixable_by": "skill", "fix_ref": "Document real test command in AGENTS.md", "effort": "Low" },
+        "fast_feedback_loop":       { "score": 0,  "weight": 15, "layer": "portable", "na": false, "evidence": "No quick subset / watch mode.", "why": "Fast tests = quick iteration", "consequence": "Slow suites discourage running", "fixable_by": "manual", "fix_ref": "Add quick subset, watch mode, markers", "effort": "Med" },
+        "feedback_quality":         { "score": 0,  "weight": 25, "layer": "portable", "na": false, "evidence": "No tests; no type-checker config.", "why": "Descriptive failures guide fixes", "consequence": "Bare asserts hide failure cause", "fixable_by": "manual", "fix_ref": "Add assertion messages + a type checker (mypy/pyright)", "effort": "Med" },
+        "coverage_reasonable":      { "score": 0,  "weight": 20, "layer": "portable", "na": false, "evidence": "No coverage config or tests.", "why": "Coverage shows test breadth", "consequence": "Low coverage misses regressions", "fixable_by": "partial", "fix_ref": "Add coverage config + raise breadth", "effort": "Med" }
+      }
+    },
+    "cicd_automation_governance": {
+      "weight": 14, "raw_score": 47.5, "weighted_score": 6.7,
+      "subcriteria": {
+        "ci_runs_tests_lint":   { "score": 50,  "weight": 30, "layer": "portable", "na": false, "evidence": ".github/workflows/ci.yml present but steps are echo TODO placeholders.", "why": "CI catches breaks pre-merge", "consequence": "No CI = broken code merges", "fixable_by": "partial", "fix_ref": "Replace placeholders with real test + lint commands", "effort": "Med" },
+        "lint_format_automated":{ "score": 50,  "weight": 25, "layer": "portable", "na": false, "evidence": "ruff + ruff-format wired via pre-commit, but no [tool.ruff] project config.", "why": "Consistent style, fewer nits", "consequence": "Manual style wastes review time", "fixable_by": "skill", "fix_ref": "Add ruff config in pyproject.toml", "effort": "Low" },
+        "pre_commit_hooks":     { "score": 100, "weight": 20, "layer": "portable", "na": false, "evidence": ".pre-commit-config.yaml with ruff, ruff-format, detect-secrets, hygiene hooks." },
+        "governance":           { "score": 0,   "weight": 25, "layer": "portable", "na": false, "evidence": "No CODEOWNERS, no Dependabot/Renovate.", "why": "CODEOWNERS/bots automate hygiene", "consequence": "Manual review bottlenecks, stale deps", "fixable_by": "skill", "fix_ref": "Add CODEOWNERS + Dependabot/Renovate", "effort": "Low" }
+      }
+    },
+    "agent_tooling_capabilities": {
+      "weight": 12, "raw_score": 0.0, "weighted_score": 0.0,
+      "subcriteria": {
+        "standard_skills":              { "score": 0, "weight": 30, "layer": "portable", "na": false, "evidence": "No SKILL.md committed in the repo (skills live in ~/.claude).", "why": "Skills extend agent capability", "consequence": "Without skills, repetitive manual work", "fixable_by": "partial", "fix_ref": "Add SKILL.md under a standard path", "effort": "Med" },
+        "bundled_helper_scripts":       { "score": 0, "weight": 15, "layer": "portable", "na": false, "evidence": "No skills/scripts in repo.", "why": "Scripts give deterministic ops", "consequence": "Ad-hoc commands are error-prone", "fixable_by": "partial", "fix_ref": "Bundle scripts/ with skills", "effort": "Med" },
+        "mcp_declaration":              { "score": 0, "weight": 25, "layer": "portable", "na": false, "evidence": "No .mcp.json or vendor MCP config.", "why": "MCP servers add capabilities", "consequence": "No MCP = limited integrations", "fixable_by": "partial", "fix_ref": "Add .mcp.json or vendor equivalent", "effort": "Med" },
+        "nav_comprehension_mcp_servers":{ "score": 0, "weight": 20, "layer": "portable", "na": false, "evidence": "No Serena/Sourcegraph/Context7 wired.", "why": "Serena/Sourcegraph speed nav", "consequence": "Manual nav wastes context", "fixable_by": "partial", "fix_ref": "Wire up a nav/comprehension MCP server", "effort": "Med" },
+        "custom_commands":              { "score": 0, "weight": 10, "layer": "target",   "na": false, "evidence": "No .claude/commands/.", "why": "Commands automate workflows", "consequence": "Repetitive prompts waste effort", "fixable_by": "partial", "fix_ref": "Add reusable commands (or Skills)", "effort": "Low" }
+      }
+    },
+    "security_sandbox": {
+      "weight": 12, "raw_score": 47.5, "weighted_score": 5.7,
+      "subcriteria": {
+        "committed_isolation_config": { "score": 0,   "weight": 20, "layer": "portable", "na": false, "evidence": "No .devcontainer/.", "why": "Isolation contains agent blast radius", "consequence": "Unsandboxed agents risk host damage", "fixable_by": "partial", "fix_ref": "Add .devcontainer/ with egress allowlist", "effort": "Med" },
+        "documented_execution_policy":{ "score": 100, "weight": 15, "layer": "portable", "na": false, "evidence": "docs/agent-execution.md (LINCE/devcontainer/OS-sandbox/hosted + safe-to-run list) + AGENTS.md security section." },
+        "agent_permission_policy":    { "score": 0,   "weight": 15, "layer": "target",   "na": false, "evidence": "No .claude/settings.json deny rules.", "why": "Restrictive perms limit damage", "consequence": "Permissive configs are attack surface (CVE-2025-59536)", "fixable_by": "partial", "fix_ref": "Add .claude/settings.json deny rules", "effort": "Med" },
+        "secret_hygiene":             { "score": 75,  "weight": 25, "layer": "portable", "na": false, "evidence": "secret_hygiene.py: .gitignore 100% secret coverage, .env.example present, no committed secrets. Missing CI secret scanning/push protection.", "why": "Prevent secret leakage", "consequence": "Committed secrets get exploited", "fixable_by": "skill", "fix_ref": "Add secret scanning + push protection in CI", "effort": "Low" },
+        "supply_chain_pinning":       { "score": 25,  "weight": 15, "layer": "portable", "na": false, "evidence": "No lockfiles yet (no deps); no Dependabot/Renovate.", "why": "Pinned deps ensure reproducibility", "consequence": "Unpinned deps drift, supply-chain risk", "fixable_by": "partial", "fix_ref": "Commit lockfile once deps added; add Dependabot/Renovate", "effort": "Low" },
+        "injection_hygiene":          { "score": 100, "weight": 10, "layer": "portable", "na": false, "evidence": "Instructions only in trusted files; no injected executable content in agent-read docs." }
+      }
+    },
+    "spec_driven_workflow_docs": {
+      "weight": 10, "raw_score": 33.75, "weighted_score": 3.4,
+      "subcriteria": {
+        "spec_tasks_dir":            { "score": 50, "weight": 25, "layer": "portable", "na": false, "evidence": "specs/ exists with TEMPLATE.md only; no real specs yet.", "why": "Specs guide implementation", "consequence": "Ad-hoc work drifts from intent", "fixable_by": "partial", "fix_ref": "Add real task specs under specs/", "effort": "Med" },
+        "acceptance_criteria":       { "score": 75, "weight": 20, "layer": "portable", "na": false, "evidence": "TEMPLATE.md includes an Acceptance Criteria section.", "why": "Criteria define done", "consequence": "Vague goals cause rework", "fixable_by": "partial", "fix_ref": "Fill acceptance criteria in real specs", "effort": "Low" },
+        "issue_pr_templates":        { "score": 0,  "weight": 15, "layer": "portable", "na": false, "evidence": "No .github/ISSUE_TEMPLATE or PR template.", "why": "Templates standardize contributions", "consequence": "Inconsistent reports slow triage", "fixable_by": "skill", "fix_ref": "Add issue/PR templates", "effort": "Low" },
+        "adr_decisions":             { "score": 0,  "weight": 15, "layer": "portable", "na": false, "evidence": "No docs/adr/.", "why": "ADRs record why", "consequence": "Lost rationale repeats mistakes", "fixable_by": "manual", "fix_ref": "Add docs/adr/ decision records", "effort": "Med" },
+        "docs_comprehension_signals":{ "score": 25, "weight": 25, "layer": "portable", "na": false, "evidence": "docs/ exists (agent-execution.md); no ARCHITECTURE.md/changelog; no code types.", "why": "Docs/types aid comprehension", "consequence": "Poor signals slow agents", "fixable_by": "partial", "fix_ref": "Add architecture doc, types, changelog", "effort": "Med" }
+      }
+    }
+  },
+  "script_signals": {
+    "available": true,
+    "secret_hygiene": { "gitignore_coverage_pct": 100.0, "env_example_present": true, "committed_secret_count": 0 },
+    "file_metrics": { "total_source_files": 6, "total_loc": 223, "oversized_file_count": 0 },
+    "instruction_audit": { "instruction_files_found": ["AGENTS.md", "CLAUDE.md"], "any_over_conciseness_limit": false },
+    "test_commands": { "has_test_command": false, "has_lint_command": false },
+    "lockfile_check": { "lockfile_count": 0 },
+    "repo_map": { "files_analyzed": 0 },
+    "coverage_signals": { "total_source_files": 0 }
+  },
+  "top_improvements": [
+    { "dimension": "testing_feedback", "potential_gain": 15.2, "effort": "High", "description": "No test suite or real test commands. Add tests + document the command." },
+    { "dimension": "agent_tooling_capabilities", "potential_gain": 12.0, "effort": "Med", "description": "No committed Skills / MCP declaration. Add SKILL.md and/or .mcp.json." },
+    { "dimension": "navigability_code_intelligence", "potential_gain": 10.8, "effort": "Med", "description": "No code/README/repo map. Add README + first modules + manifest." },
+    { "dimension": "cicd_automation_governance", "potential_gain": 7.35, "effort": "Low", "description": "CI steps are placeholders; no CODEOWNERS/Dependabot. Wire real CI + governance." },
+    { "dimension": "spec_driven_workflow_docs", "potential_gain": 6.6, "effort": "Med", "description": "Only a spec template, no real specs/ADR/architecture doc." }
+  ]
+}

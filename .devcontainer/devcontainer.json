@@ -1,0 +1,16 @@
+{
+  "name": "larder",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "postCreateCommand": "pip install ruff pre-commit && pre-commit install || true",
+  "customizations": {
+    "vscode": {
+      "extensions": ["charliermarsh.ruff", "ms-python.python"]
+    }
+  },
+  // Isolation note: prefer a default-deny egress allowlist when running agents.
+  // See docs/agent-execution.md for the recommended sandbox posture.
+  "runArgs": ["--cap-drop=ALL"]
+}
