@@ -11,8 +11,8 @@ through the `CLAUDE.md` symlink. Keep it concise (< 200 lines).
 
 ## Build · Test · Lint
 
-These are placeholders for a Python project. Replace the TODOs with the real
-commands once the toolchain (e.g. `uv` / `pip` + `pytest` + `ruff`) is set up.
+Lint/format are configured (ruff, see `pyproject.toml`). Install and test
+commands are still TODO until the toolchain and a test suite are chosen.
 
 ```bash
 # Install dependencies
@@ -25,10 +25,10 @@ commands once the toolchain (e.g. `uv` / `pip` + `pytest` + `ruff`) is set up.
 # TODO: e.g. `pytest -q`
 
 # Lint
-# TODO: e.g. `ruff check .`
+ruff check .
 
 # Format
-# TODO: e.g. `ruff format .`
+ruff format .
 ```
 
 ## Code Style
@@ -40,9 +40,13 @@ commands once the toolchain (e.g. `uv` / `pip` + `pytest` + `ruff`) is set up.
 ## Project Structure
 
 <!-- TODO: Update as the codebase grows. -->
-- `LICENSE` — project license.
+- `README.md` — human overview, setup, usage.
+- `ARCHITECTURE.md` — high-level design and repo layout.
+- `pyproject.toml` — project metadata + ruff (lint/format) config.
 - `specs/` — task specifications (see `specs/TEMPLATE.md`).
-- `docs/` — project and agent-execution docs.
+- `docs/` — project docs, agent-execution policy, ADRs (`docs/adr/`).
+- `.github/` — CI, issue/PR templates, CODEOWNERS, Dependabot.
+- `LICENSE` — project license.
 
 ## Safe-to-Run / Security
 

@@ -1,0 +1,6 @@
+# Code owners for review routing. See:
+# https://docs.github.com/articles/about-code-owners
+# TODO: replace with real team/user handles as the project grows.
+
+# Default owner for everything in the repo
+* @jacopobalocco
