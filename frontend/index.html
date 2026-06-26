@@ -26,6 +26,31 @@ button{font-family:'Karla',sans-serif;}
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 
+let DATA = [];
+
+async function loadRecipes() {
+  const res = await fetch('/recipes/');
+  const raw = await res.json();
+  DATA = raw.map(r => ({
+    id:    r.id,
+    title: r.name,
+    cat:   r.category,
+    time:  r.time_min,
+    serv:  r.servings,
+    kcal:  r.kcal,
+    p:     r.protein_g,
+    c:     r.carbs_g,
+    f:     r.fat_g,
+    fib:   r.fiber_g,
+    meat:  r.has_meat,
+    img:   r.image_id,
+    lbl:   r.name.toLowerCase(),
+    tags:  r.tags,
+    ing:   r.ingredients.map(i => [i.name, i.quantity, i.unit, i.macro_group]),
+    steps: r.steps,
+  }));
+}
+
 const CAT = {
   primi:    {label:'Primi',    color:'#C2745A'},
   secondi:  {label:'Secondi',  color:'#9C6B3F'},
@@ -41,44 +66,6 @@ const GCOLOR = {
 };
 const PANTRY = {Spezie:true, Condimenti:true};
 
-const DATA = [
-  {id:'amatriciana',title:"Rigatoni all'Amatriciana",cat:'primi',time:30,serv:4,kcal:520,p:18,c:62,f:19,fib:4,meat:true,img:'1551183053-bf91a1d81141',lbl:'amatriciana',tags:['Comfort','Tradizionale'],
-    ing:[['Rigatoni',320,'g','Pasta/Riso'],['Guanciale',150,'g','Proteine'],['Pomodori pelati',400,'g','Verdure'],['Pecorino romano',60,'g','Latticini'],['Cipolla',1,'','Verdure'],['Olio evo',2,'cucchiai','Condimenti'],['Peperoncino',1,'','Spezie'],['Sale',null,'q.b.','Spezie']],
-    steps:['Rosola il guanciale a dadini in padella finché croccante, poi mettilo da parte.','Nello stesso grasso soffriggi la cipolla tritata con il peperoncino.','Aggiungi i pomodori pelati schiacciati e cuoci 15 minuti.','Lessa i rigatoni al dente e scolali tenendo un mestolo d’acqua.','Manteca pasta e sugo, unisci il guanciale e il pecorino. Servi subito.']},
-  {id:'vongole',title:'Spaghetti alle Vongole',cat:'primi',time:25,serv:4,kcal:540,p:22,c:64,f:16,fib:3,meat:false,img:'1563379926898-05f4575a45d8',lbl:'vongole',tags:['Veloce','Mare'],
-    ing:[['Spaghetti',320,'g','Pasta/Riso'],['Vongole',800,'g','Proteine'],['Aglio',2,'spicchi','Verdure'],['Prezzemolo',1,'mazzo','Verdure'],['Vino bianco',100,'ml','Condimenti'],['Olio evo',3,'cucchiai','Condimenti'],['Peperoncino',1,'','Spezie']],
-    steps:['Fai spurgare le vongole in acqua e sale per un’ora.','Apri le vongole in padella con aglio e olio, sfuma con il vino.','Filtra e tieni il liquido delle vongole.','Lessa gli spaghetti molto al dente e finisci la cottura nel liquido.','Salta con vongole e prezzemolo, completa con un filo d’olio a crudo.']},
-  {id:'risotto',title:'Risotto ai Porcini',cat:'primi',time:40,serv:4,kcal:480,p:11,c:71,f:14,fib:5,meat:false,img:'1476124369491-e7addf5db371',lbl:'risotto',tags:['Vegetariano','Cremoso'],
-    ing:[['Riso Carnaroli',320,'g','Pasta/Riso'],['Funghi porcini',300,'g','Verdure'],['Brodo vegetale',1,'L','Condimenti'],['Cipolla',1,'','Verdure'],['Vino bianco',80,'ml','Condimenti'],['Parmigiano',50,'g','Latticini'],['Burro',30,'g','Latticini'],['Prezzemolo',null,'q.b.','Verdure']],
-    steps:['Trifola i porcini con un po’ di aglio e prezzemolo, tieni da parte.','Tosta il riso con la cipolla, sfuma con il vino bianco.','Aggiungi il brodo caldo poco alla volta mescolando.','A metà cottura unisci i porcini.','Manteca fuori dal fuoco con burro e parmigiano. Lascia riposare un minuto.']},
-  {id:'cacciatora',title:'Pollo alla Cacciatora',cat:'secondi',time:55,serv:4,kcal:610,p:41,c:12,f:38,fib:3,meat:true,img:'1432139555190-58524dae6a55',lbl:'cacciatora',tags:['Tradizionale'],
-    ing:[['Pollo a pezzi',1000,'g','Proteine'],['Pomodori pelati',400,'g','Verdure'],['Olive nere',100,'g','Verdure'],['Cipolla',1,'','Verdure'],['Carota',1,'','Verdure'],['Sedano',1,'costa','Verdure'],['Rosmarino',2,'rametti','Spezie'],['Vino rosso',150,'ml','Condimenti'],['Olio evo',3,'cucchiai','Condimenti']],
-    steps:['Rosola i pezzi di pollo nell’olio finché dorati.','Aggiungi il trito di cipolla, carota e sedano.','Sfuma con il vino rosso e lascia evaporare.','Unisci pomodori, olive e rosmarino.','Cuoci coperto a fuoco basso per 40 minuti, aggiustando di sale.']},
-  {id:'parmigiana',title:'Parmigiana di Melanzane',cat:'secondi',time:75,serv:6,kcal:430,p:16,c:24,f:29,fib:6,meat:false,img:'1619895092538-128341789043',lbl:'parmigiana',tags:['Vegetariano','Forno'],
-    ing:[['Melanzane',1000,'g','Verdure'],['Passata di pomodoro',700,'g','Verdure'],['Mozzarella',300,'g','Latticini'],['Parmigiano',100,'g','Latticini'],['Basilico',1,'mazzo','Verdure'],['Farina',100,'g','Altro'],['Olio per friggere',500,'ml','Condimenti'],['Sale',null,'q.b.','Spezie']],
-    steps:['Affetta le melanzane, salale e falle spurgare 30 minuti.','Friggile dorate e asciugale su carta.','Prepara un sugo semplice con la passata e il basilico.','Alterna in teglia melanzane, sugo, mozzarella e parmigiano.','Inforna a 180°C per 30 minuti. Fai riposare prima di servire.']},
-  {id:'ossobuco',title:'Ossobuco alla Milanese',cat:'secondi',time:120,serv:4,kcal:680,p:52,c:14,f:42,fib:1,meat:true,img:'1544025162-d76694265947',lbl:'ossobuco',tags:['Della domenica'],
-    ing:[['Ossobuco di vitello',4,'','Proteine'],['Brodo di carne',500,'ml','Condimenti'],['Vino bianco',150,'ml','Condimenti'],['Cipolla',1,'','Verdure'],['Carota',1,'','Verdure'],['Sedano',1,'costa','Verdure'],['Burro',40,'g','Latticini'],['Farina',50,'g','Altro'],['Prezzemolo e limone',null,'q.b.','Spezie']],
-    steps:['Infarina gli ossibuchi e rosolali nel burro.','Aggiungi il trito di verdure e fai appassire.','Sfuma con il vino bianco.','Unisci il brodo, copri e cuoci a fuoco bassissimo 1 ora e mezza.','Completa con la gremolada di prezzemolo, aglio e scorza di limone.']},
-  {id:'lenticchie',title:'Zuppa di Lenticchie',cat:'zuppe',time:35,serv:4,kcal:280,p:17,c:42,f:5,fib:14,meat:false,img:'1547592180-85f173990554',lbl:'lenticchie',tags:['Vegetariano','Veloce'],
-    ing:[['Lenticchie',300,'g','Altro'],['Pomodori pelati',200,'g','Verdure'],['Carota',2,'','Verdure'],['Sedano',2,'coste','Verdure'],['Cipolla',1,'','Verdure'],['Brodo vegetale',1,'L','Condimenti'],['Rosmarino',1,'rametto','Spezie'],['Olio evo',2,'cucchiai','Condimenti']],
-    steps:['Soffriggi il trito di carota, sedano e cipolla nell’olio.','Aggiungi le lenticchie e tostale un minuto.','Unisci i pomodori e il rosmarino.','Copri con il brodo caldo e cuoci 25 minuti.','Aggiusta di sale e servi con un filo d’olio a crudo.']},
-  {id:'minestrone',title:'Minestrone della Casa',cat:'zuppe',time:45,serv:6,kcal:240,p:9,c:38,f:6,fib:11,meat:false,img:'1604908176997-125f25cc6f3d',lbl:'minestrone',tags:['Vegetariano'],
-    ing:[['Zucchine',2,'','Verdure'],['Carote',2,'','Verdure'],['Patate',2,'','Verdure'],['Fagioli borlotti',200,'g','Altro'],['Sedano',2,'coste','Verdure'],['Pomodori',2,'','Verdure'],['Pasta corta',150,'g','Pasta/Riso'],['Brodo vegetale',1500,'ml','Condimenti'],['Parmigiano',null,'q.b.','Latticini']],
-    steps:['Taglia tutte le verdure a cubetti regolari.','Falle stufare qualche minuto nell’olio.','Copri con il brodo e cuoci 25 minuti.','Aggiungi la pasta e i fagioli, cuoci finché al dente.','Servi con parmigiano grattugiato e olio a crudo.']},
-  {id:'finocchi',title:'Insalata di Finocchi e Arance',cat:'contorni',time:15,serv:4,kcal:160,p:3,c:18,f:9,fib:6,meat:false,img:'1505253716362-afaea1d3d1af',lbl:'finocchi e arance',tags:['Vegetariano','Veloce','Fresco'],
-    ing:[['Finocchi',2,'','Verdure'],['Arance',2,'','Verdure'],['Olive nere',50,'g','Verdure'],['Olio evo',2,'cucchiai','Condimenti'],['Sale',null,'q.b.','Spezie']],
-    steps:['Affetta finemente i finocchi con la mandolina.','Pela a vivo le arance e ricava gli spicchi.','Unisci finocchi, arance e olive in una ciotola.','Condisci con olio, sale e qualche goccia del succo d’arancia.','Lascia insaporire 10 minuti prima di servire.']},
-  {id:'caprese',title:'Caprese di Bufala',cat:'contorni',time:10,serv:4,kcal:220,p:14,c:6,f:16,fib:1,meat:false,img:'1592417817098-8fd3d9eb14a5',lbl:'caprese',tags:['Vegetariano','Veloce'],
-    ing:[['Mozzarella di bufala',250,'g','Latticini'],['Pomodori',4,'','Verdure'],['Basilico',1,'mazzo','Verdure'],['Olio evo',2,'cucchiai','Condimenti'],['Origano',null,'q.b.','Spezie']],
-    steps:['Affetta i pomodori e la mozzarella a fette spesse.','Alternale su un piatto da portata.','Distribuisci le foglie di basilico.','Condisci con olio, origano e un pizzico di sale.','Servi a temperatura ambiente.']},
-  {id:'tiramisu',title:'Tiramisù della Nonna',cat:'dolci',time:30,serv:8,kcal:390,p:7,c:43,f:21,fib:1,meat:false,img:'1571877227200-a0d98ea607e9',lbl:'tiramisù',tags:['Dolce','Classico'],
-    ing:[['Savoiardi',300,'g','Altro'],['Mascarpone',500,'g','Latticini'],['Uova',4,'','Proteine'],['Zucchero',100,'g','Altro'],['Caffè',300,'ml','Condimenti'],['Cacao amaro',null,'q.b.','Spezie']],
-    steps:['Monta i tuorli con lo zucchero, unisci il mascarpone.','Incorpora delicatamente gli albumi montati a neve.','Inzuppa i savoiardi nel caffè freddo.','Alterna strati di savoiardi e crema in una pirofila.','Spolvera di cacao e lascia in frigo almeno 4 ore.']},
-  {id:'pancakes',title:'Pancakes alla Ricotta',cat:'colazione',time:20,serv:4,kcal:310,p:14,c:34,f:13,fib:2,meat:false,img:'1567620905732-2d1ec7ab7445',lbl:'pancakes',tags:['Veloce','Dolce'],
-    ing:[['Ricotta',250,'g','Latticini'],['Uova',3,'','Proteine'],['Farina',150,'g','Altro'],['Latte',100,'ml','Latticini'],['Zucchero',40,'g','Altro'],['Lievito',1,'bustina','Altro'],['Miele',null,'q.b.','Condimenti']],
-    steps:['Mescola ricotta, tuorli, latte e zucchero.','Unisci farina e lievito setacciati.','Incorpora gli albumi montati a neve.','Cuoci piccoli pancake in padella antiaderente.','Servi caldi con un filo di miele.']},
-];
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 
@@ -87,7 +74,7 @@ let state = {
   filter: 'Tutte',
   modal: null,
   servings: 4,
-  pool: ['amatriciana', 'lenticchie', 'caprese'],
+  pool: [],
   plan: {},
   activeDays: {lun:true,mar:true,mer:true,gio:true,ven:true,sab:true,dom:true},
   removed: {},
@@ -675,7 +662,7 @@ function attachEvents() {
   });
 }
 
-render();
+loadRecipes().then(() => render());
 </script>
 </body>
 </html>
