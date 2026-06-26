@@ -1,31 +1,9 @@
-# --- Secret hygiene (agent-ready baseline) ---
-.env
-.env.*
-!.env.example
-*.pem
-id_rsa
-*credentials*
-*.key
-*.p12
-*.pfx
-
-# --- Python ---
-__pycache__/
-*.py[cod]
-*.egg-info/
-.eggs/
-build/
-dist/
 .venv/
-venv/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.coverage
-htmlcov/
-
-# --- OS / editor ---
+__pycache__/
+*.pyc
+*.pyo
+data/recipes.db
+.env
+*.egg-info/
+dist/
 .DS_Store
-*.swp
-.idea/
-.vscode/
