@@ -32,7 +32,7 @@ async function loadRecipes() {
   const res = await fetch('/recipes/');
   const raw = await res.json();
   DATA = raw.map(r => ({
-    id:    r.id,
+    id:    String(r.id),
     title: r.name,
     cat:   r.category,
     time:  r.time_min,
@@ -93,7 +93,7 @@ function setState(updates) {
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 
-function rec(id) { return DATA.find(r => r.id === id); }
+function rec(id) { return DATA.find(r => r.id == id); }
 function placedIds() { return Object.values(state.plan).flat(); }
 function isAdded(id) { return state.pool.includes(id) || placedIds().includes(id); }
 
@@ -104,6 +104,8 @@ function clonePlan(p) {
 }
 
 function imgUrl(img, w) {
+  if (!img) return '';
+  if (img.startsWith('http')) return img;
   return `https://images.unsplash.com/photo-${img}?w=${w}&q=80&auto=format&fit=crop`;
 }
 
@@ -270,7 +272,7 @@ function buildLibrary() {
           <span style="font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#a89e8d;">${CAT[r.cat].label} · ${r.time}′</span>
         </div>
         <div data-action="open-recipe" data-id="${r.id}" style="font-family:'Spectral',serif;font-weight:600;font-size:20px;line-height:1.08;color:#33302A;cursor:pointer;margin-bottom:7px;min-height:43px;">${r.title}</div>
-        <div style="font-size:11.5px;color:#a89e8d;margin-bottom:11px;">${r.kcal} kcal · ${r.p}g proteine</div>
+        <div style="font-size:11.5px;color:#a89e8d;margin-bottom:11px;">${[r.kcal!=null?r.kcal+' kcal':null, r.p!=null?r.p+'g proteine':null].filter(Boolean).join(' · ') || '—'}</div>
         <button data-action="toggle-week" data-id="${r.id}" style="margin-top:auto;width:100%;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:9px 10px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:6px;background:${added?'#EBF0E1':'#33302A'};color:${added?'#6E8350':'#F3EEE6'};border:1px solid ${added?'#D5E0C2':'#33302A'};">${added?'✓ Nella settimana':'+ Aggiungi alla settimana'}</button>
       </div>
     </div>`;
@@ -539,7 +541,6 @@ function render() {
       ${state.screen==='spesa'     ? buildShopping() : ''}
       ${state.modal                ? buildModal()    : ''}
     </div>`;
-  attachEvents();
 }
 
 function attachEvents() {
@@ -547,6 +548,7 @@ function attachEvents() {
 
   // ── click delegation ──────────────────────────────────────────────────────
   app.addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') { setState({modal:null}); return; }
     const el = e.target.closest('[data-action]');
     if (!el) return;
     const {action, screen, filter, id, key, macro, slot} = el.dataset;
@@ -614,12 +616,6 @@ function attachEvents() {
     }
   });
 
-  // modal overlay click-outside
-  const overlay = document.getElementById('modal-overlay');
-  if (overlay) {
-    overlay.addEventListener('click', e => { if (e.target === overlay) setState({modal:null}); });
-  }
-
   // ── drag & drop ───────────────────────────────────────────────────────────
   app.addEventListener('dragstart', e => {
     const el = e.target.closest('[data-drag-id]');
@@ -662,7 +658,7 @@ function attachEvents() {
   });
 }
 
-loadRecipes().then(() => render());
+loadRecipes().then(() => { render(); attachEvents(); });
 </script>
 </body>
 </html>

@@ -48,6 +48,15 @@ ruff format .
 - `.github/` — CI, issue/PR templates, CODEOWNERS, Dependabot.
 - `LICENSE` — project license.
 
+## Network
+
+Il Mac è connesso alla rete **Tailscale**. Hostname: `localhost` · IP Tailscale: `TAILSCALE-IP`.
+
+Il server dell'app gira su porta configurata. Per accedere dall'iPhone (anch'esso su Tailscale come `iphone-locale`):
+```
+http://localhost:PORT
+```
+
 ## Safe-to-Run / Security
 
 - Safe-to-run without confirmation: read-only inspection, the test and lint

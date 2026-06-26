@@ -1,8 +1,13 @@
 import json
 from fastapi import APIRouter, HTTPException
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel
 from api.database import get_connection
 from api.models import Recipe, RecipeCreate
+
+
+class RecipePatch(BaseModel):
+    image_id: Optional[str] = None
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -75,6 +80,21 @@ def create_recipe(recipe: RecipeCreate):
     conn.commit()
     row = conn.execute("SELECT * FROM recipes WHERE id=?", (recipe_id,)).fetchone()
     result = _load_recipe(conn, row)
+    conn.close()
+    return result
+
+
+@router.patch("/{recipe_id}", response_model=Recipe)
+def patch_recipe(recipe_id: int, patch: RecipePatch):
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM recipes WHERE id=?", (recipe_id,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    if patch.image_id is not None:
+        conn.execute("UPDATE recipes SET image_id=? WHERE id=?", (patch.image_id, recipe_id))
+        conn.commit()
+    result = _load_recipe(conn, conn.execute("SELECT * FROM recipes WHERE id=?", (recipe_id,)).fetchone())
     conn.close()
     return result
 
