@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100vh;}
+body{background:#EDE6DA;font-family:'Karla',sans-serif;color:#33302A;}
+::-webkit-scrollbar{width:11px;height:11px;}
+::-webkit-scrollbar-thumb{background:#cdc2af;border-radius:8px;border:3px solid transparent;background-clip:content-box;}
+button{font-family:'Karla',sans-serif;}
+.ph{position:relative;overflow:hidden;background:repeating-linear-gradient(135deg,#E7DFD0 0 10px,#DFD6C5 10px 20px);}
+.ph>em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.08em;color:#AB9F8C;text-transform:uppercase;font-style:normal;pointer-events:none;padding:4px;text-align:center;}
+.drag{cursor:grab;}
+.drag:active{cursor:grabbing;}
+.slot-over{outline:2px dashed #C2745A;outline-offset:-2px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const CAT = {
+  primi:    {label:'Primi',    color:'#C2745A'},
+  secondi:  {label:'Secondi',  color:'#9C6B3F'},
+  contorni: {label:'Contorni', color:'#8A9A6F'},
+  zuppe:    {label:'Zuppe',    color:'#C99A4E'},
+  dolci:    {label:'Dolci',    color:'#A8657A'},
+  colazione:{label:'Colazione',color:'#6E9285'},
+};
+const GORDER = ['Verdure','Proteine','Pasta/Riso','Latticini','Condimenti','Spezie','Altro'];
+const GCOLOR = {
+  Verdure:'#8A9A6F', Proteine:'#B05E42', 'Pasta/Riso':'#C99A4E',
+  Latticini:'#D9C9A3', Condimenti:'#9C8456', Spezie:'#A8657A', Altro:'#9a9183',
+};
+const PANTRY = {Spezie:true, Condimenti:true};
+
+const DATA = [
+  {id:'amatriciana',title:"Rigatoni all'Amatriciana",cat:'primi',time:30,serv:4,kcal:520,p:18,c:62,f:19,fib:4,meat:true,img:'1551183053-bf91a1d81141',lbl:'amatriciana',tags:['Comfort','Tradizionale'],
+    ing:[['Rigatoni',320,'g','Pasta/Riso'],['Guanciale',150,'g','Proteine'],['Pomodori pelati',400,'g','Verdure'],['Pecorino romano',60,'g','Latticini'],['Cipolla',1,'','Verdure'],['Olio evo',2,'cucchiai','Condimenti'],['Peperoncino',1,'','Spezie'],['Sale',null,'q.b.','Spezie']],
+    steps:['Rosola il guanciale a dadini in padella finché croccante, poi mettilo da parte.','Nello stesso grasso soffriggi la cipolla tritata con il peperoncino.','Aggiungi i pomodori pelati schiacciati e cuoci 15 minuti.','Lessa i rigatoni al dente e scolali tenendo un mestolo d’acqua.','Manteca pasta e sugo, unisci il guanciale e il pecorino. Servi subito.']},
+  {id:'vongole',title:'Spaghetti alle Vongole',cat:'primi',time:25,serv:4,kcal:540,p:22,c:64,f:16,fib:3,meat:false,img:'1563379926898-05f4575a45d8',lbl:'vongole',tags:['Veloce','Mare'],
+    ing:[['Spaghetti',320,'g','Pasta/Riso'],['Vongole',800,'g','Proteine'],['Aglio',2,'spicchi','Verdure'],['Prezzemolo',1,'mazzo','Verdure'],['Vino bianco',100,'ml','Condimenti'],['Olio evo',3,'cucchiai','Condimenti'],['Peperoncino',1,'','Spezie']],
+    steps:['Fai spurgare le vongole in acqua e sale per un’ora.','Apri le vongole in padella con aglio e olio, sfuma con il vino.','Filtra e tieni il liquido delle vongole.','Lessa gli spaghetti molto al dente e finisci la cottura nel liquido.','Salta con vongole e prezzemolo, completa con un filo d’olio a crudo.']},
+  {id:'risotto',title:'Risotto ai Porcini',cat:'primi',time:40,serv:4,kcal:480,p:11,c:71,f:14,fib:5,meat:false,img:'1476124369491-e7addf5db371',lbl:'risotto',tags:['Vegetariano','Cremoso'],
+    ing:[['Riso Carnaroli',320,'g','Pasta/Riso'],['Funghi porcini',300,'g','Verdure'],['Brodo vegetale',1,'L','Condimenti'],['Cipolla',1,'','Verdure'],['Vino bianco',80,'ml','Condimenti'],['Parmigiano',50,'g','Latticini'],['Burro',30,'g','Latticini'],['Prezzemolo',null,'q.b.','Verdure']],
+    steps:['Trifola i porcini con un po’ di aglio e prezzemolo, tieni da parte.','Tosta il riso con la cipolla, sfuma con il vino bianco.','Aggiungi il brodo caldo poco alla volta mescolando.','A metà cottura unisci i porcini.','Manteca fuori dal fuoco con burro e parmigiano. Lascia riposare un minuto.']},
+  {id:'cacciatora',title:'Pollo alla Cacciatora',cat:'secondi',time:55,serv:4,kcal:610,p:41,c:12,f:38,fib:3,meat:true,img:'1432139555190-58524dae6a55',lbl:'cacciatora',tags:['Tradizionale'],
+    ing:[['Pollo a pezzi',1000,'g','Proteine'],['Pomodori pelati',400,'g','Verdure'],['Olive nere',100,'g','Verdure'],['Cipolla',1,'','Verdure'],['Carota',1,'','Verdure'],['Sedano',1,'costa','Verdure'],['Rosmarino',2,'rametti','Spezie'],['Vino rosso',150,'ml','Condimenti'],['Olio evo',3,'cucchiai','Condimenti']],
+    steps:['Rosola i pezzi di pollo nell’olio finché dorati.','Aggiungi il trito di cipolla, carota e sedano.','Sfuma con il vino rosso e lascia evaporare.','Unisci pomodori, olive e rosmarino.','Cuoci coperto a fuoco basso per 40 minuti, aggiustando di sale.']},
+  {id:'parmigiana',title:'Parmigiana di Melanzane',cat:'secondi',time:75,serv:6,kcal:430,p:16,c:24,f:29,fib:6,meat:false,img:'1619895092538-128341789043',lbl:'parmigiana',tags:['Vegetariano','Forno'],
+    ing:[['Melanzane',1000,'g','Verdure'],['Passata di pomodoro',700,'g','Verdure'],['Mozzarella',300,'g','Latticini'],['Parmigiano',100,'g','Latticini'],['Basilico',1,'mazzo','Verdure'],['Farina',100,'g','Altro'],['Olio per friggere',500,'ml','Condimenti'],['Sale',null,'q.b.','Spezie']],
+    steps:['Affetta le melanzane, salale e falle spurgare 30 minuti.','Friggile dorate e asciugale su carta.','Prepara un sugo semplice con la passata e il basilico.','Alterna in teglia melanzane, sugo, mozzarella e parmigiano.','Inforna a 180°C per 30 minuti. Fai riposare prima di servire.']},
+  {id:'ossobuco',title:'Ossobuco alla Milanese',cat:'secondi',time:120,serv:4,kcal:680,p:52,c:14,f:42,fib:1,meat:true,img:'1544025162-d76694265947',lbl:'ossobuco',tags:['Della domenica'],
+    ing:[['Ossobuco di vitello',4,'','Proteine'],['Brodo di carne',500,'ml','Condimenti'],['Vino bianco',150,'ml','Condimenti'],['Cipolla',1,'','Verdure'],['Carota',1,'','Verdure'],['Sedano',1,'costa','Verdure'],['Burro',40,'g','Latticini'],['Farina',50,'g','Altro'],['Prezzemolo e limone',null,'q.b.','Spezie']],
+    steps:['Infarina gli ossibuchi e rosolali nel burro.','Aggiungi il trito di verdure e fai appassire.','Sfuma con il vino bianco.','Unisci il brodo, copri e cuoci a fuoco bassissimo 1 ora e mezza.','Completa con la gremolada di prezzemolo, aglio e scorza di limone.']},
+  {id:'lenticchie',title:'Zuppa di Lenticchie',cat:'zuppe',time:35,serv:4,kcal:280,p:17,c:42,f:5,fib:14,meat:false,img:'1547592180-85f173990554',lbl:'lenticchie',tags:['Vegetariano','Veloce'],
+    ing:[['Lenticchie',300,'g','Altro'],['Pomodori pelati',200,'g','Verdure'],['Carota',2,'','Verdure'],['Sedano',2,'coste','Verdure'],['Cipolla',1,'','Verdure'],['Brodo vegetale',1,'L','Condimenti'],['Rosmarino',1,'rametto','Spezie'],['Olio evo',2,'cucchiai','Condimenti']],
+    steps:['Soffriggi il trito di carota, sedano e cipolla nell’olio.','Aggiungi le lenticchie e tostale un minuto.','Unisci i pomodori e il rosmarino.','Copri con il brodo caldo e cuoci 25 minuti.','Aggiusta di sale e servi con un filo d’olio a crudo.']},
+  {id:'minestrone',title:'Minestrone della Casa',cat:'zuppe',time:45,serv:6,kcal:240,p:9,c:38,f:6,fib:11,meat:false,img:'1604908176997-125f25cc6f3d',lbl:'minestrone',tags:['Vegetariano'],
+    ing:[['Zucchine',2,'','Verdure'],['Carote',2,'','Verdure'],['Patate',2,'','Verdure'],['Fagioli borlotti',200,'g','Altro'],['Sedano',2,'coste','Verdure'],['Pomodori',2,'','Verdure'],['Pasta corta',150,'g','Pasta/Riso'],['Brodo vegetale',1500,'ml','Condimenti'],['Parmigiano',null,'q.b.','Latticini']],
+    steps:['Taglia tutte le verdure a cubetti regolari.','Falle stufare qualche minuto nell’olio.','Copri con il brodo e cuoci 25 minuti.','Aggiungi la pasta e i fagioli, cuoci finché al dente.','Servi con parmigiano grattugiato e olio a crudo.']},
+  {id:'finocchi',title:'Insalata di Finocchi e Arance',cat:'contorni',time:15,serv:4,kcal:160,p:3,c:18,f:9,fib:6,meat:false,img:'1505253716362-afaea1d3d1af',lbl:'finocchi e arance',tags:['Vegetariano','Veloce','Fresco'],
+    ing:[['Finocchi',2,'','Verdure'],['Arance',2,'','Verdure'],['Olive nere',50,'g','Verdure'],['Olio evo',2,'cucchiai','Condimenti'],['Sale',null,'q.b.','Spezie']],
+    steps:['Affetta finemente i finocchi con la mandolina.','Pela a vivo le arance e ricava gli spicchi.','Unisci finocchi, arance e olive in una ciotola.','Condisci con olio, sale e qualche goccia del succo d’arancia.','Lascia insaporire 10 minuti prima di servire.']},
+  {id:'caprese',title:'Caprese di Bufala',cat:'contorni',time:10,serv:4,kcal:220,p:14,c:6,f:16,fib:1,meat:false,img:'1592417817098-8fd3d9eb14a5',lbl:'caprese',tags:['Vegetariano','Veloce'],
+    ing:[['Mozzarella di bufala',250,'g','Latticini'],['Pomodori',4,'','Verdure'],['Basilico',1,'mazzo','Verdure'],['Olio evo',2,'cucchiai','Condimenti'],['Origano',null,'q.b.','Spezie']],
+    steps:['Affetta i pomodori e la mozzarella a fette spesse.','Alternale su un piatto da portata.','Distribuisci le foglie di basilico.','Condisci con olio, origano e un pizzico di sale.','Servi a temperatura ambiente.']},
+  {id:'tiramisu',title:'Tiramisù della Nonna',cat:'dolci',time:30,serv:8,kcal:390,p:7,c:43,f:21,fib:1,meat:false,img:'1571877227200-a0d98ea607e9',lbl:'tiramisù',tags:['Dolce','Classico'],
+    ing:[['Savoiardi',300,'g','Altro'],['Mascarpone',500,'g','Latticini'],['Uova',4,'','Proteine'],['Zucchero',100,'g','Altro'],['Caffè',300,'ml','Condimenti'],['Cacao amaro',null,'q.b.','Spezie']],
+    steps:['Monta i tuorli con lo zucchero, unisci il mascarpone.','Incorpora delicatamente gli albumi montati a neve.','Inzuppa i savoiardi nel caffè freddo.','Alterna strati di savoiardi e crema in una pirofila.','Spolvera di cacao e lascia in frigo almeno 4 ore.']},
+  {id:'pancakes',title:'Pancakes alla Ricotta',cat:'colazione',time:20,serv:4,kcal:310,p:14,c:34,f:13,fib:2,meat:false,img:'1567620905732-2d1ec7ab7445',lbl:'pancakes',tags:['Veloce','Dolce'],
+    ing:[['Ricotta',250,'g','Latticini'],['Uova',3,'','Proteine'],['Farina',150,'g','Altro'],['Latte',100,'ml','Latticini'],['Zucchero',40,'g','Altro'],['Lievito',1,'bustina','Altro'],['Miele',null,'q.b.','Condimenti']],
+    steps:['Mescola ricotta, tuorli, latte e zucchero.','Unisci farina e lievito setacciati.','Incorpora gli albumi montati a neve.','Cuoci piccoli pancake in padella antiaderente.','Servi caldi con un filo di miele.']},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+let state = {
+  screen: 'libreria',
+  filter: 'Tutte',
+  modal: null,
+  servings: 4,
+  pool: ['amatriciana', 'lenticchie', 'caprese'],
+  plan: {},
+  activeDays: {lun:true,mar:true,mer:true,gio:true,ven:true,sab:true,dom:true},
+  removed: {},
+  collapsed: {},
+  copied: false,
+};
+
+let drag = null;
+let copyTimeout = null;
+
+function setState(updates) {
+  if (typeof updates === 'function') updates = updates(state);
+  state = {...state, ...updates};
+  render();
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+
+function rec(id) { return DATA.find(r => r.id === id); }
+function placedIds() { return Object.values(state.plan).flat(); }
+function isAdded(id) { return state.pool.includes(id) || placedIds().includes(id); }
+
+function clonePlan(p) {
+  const o = {};
+  Object.keys(p).forEach(k => o[k] = [...p[k]]);
+  return o;
+}
+
+function imgUrl(img, w) {
+  return `https://images.unsplash.com/photo-${img}?w=${w}&q=80&auto=format&fit=crop`;
+}
+
+function fmtAmt(qty, unit) {
+  if (qty == null) return unit || 'q.b.';
+  const tight = ['g','ml','kg','L'];
+  let v = qty;
+  if (v >= 50) v = Math.round(v/5)*5;
+  else if (v >= 10) v = Math.round(v);
+  else v = Math.round(v*2)/2;
+  return tight.includes(unit) ? (v+unit) : (unit ? v+' '+unit : ''+v);
+}
+
+function getDays() {
+  const ABBR  = ['dom','lun','mar','mer','gio','ven','sab'];
+  const LABEL = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const t = new Date(); t.setHours(12,0,0,0); t.setDate(t.getDate()+1);
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(t); d.setDate(t.getDate()+i);
+    return {key:ABBR[d.getDay()], label:LABEL[d.getDay()], date:String(d.getDate()), dateObj:d};
+  });
+}
+
+function getWeekLabel() {
+  const M = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const dd = getDays();
+  const a = dd[0].dateObj, b = dd[6].dateObj;
+  return a.getMonth()===b.getMonth()
+    ? a.getDate()+'–'+b.getDate()+' '+M[a.getMonth()]
+    : a.getDate()+' '+M[a.getMonth()]+' – '+b.getDate()+' '+M[b.getMonth()];
+}
+
+// ── LOGIC ─────────────────────────────────────────────────────────────────────
+
+function addWeek(id) {
+  if (isAdded(id)) return;
+  setState(s => ({pool:[...s.pool, id]}));
+}
+
+function removeWeek(id) {
+  setState(s => {
+    const plan = clonePlan(s.plan);
+    Object.keys(plan).forEach(k => {
+      plan[k] = plan[k].filter(x => x !== id);
+      if (plan[k].length === 0) delete plan[k];
+    });
+    return {pool:s.pool.filter(x => x !== id), plan};
+  });
+}
+
+function toggleWeek(id) { isAdded(id) ? removeWeek(id) : addWeek(id); }
+
+function clearCalendar() {
+  setState(s => {
+    const all = Object.values(s.plan).flat();
+    return {plan:{}, pool:[...new Set([...s.pool, ...all])]};
+  });
+}
+
+function clearPool() { setState({pool:[]}); }
+
+function autoDistribute() {
+  setState(s => {
+    const all = [...s.pool, ...Object.values(s.plan).flat()];
+    const dynDays = getDays();
+    const slots = [];
+    dynDays.forEach(({key}) => {
+      if (s.activeDays[key]) { slots.push(key+'-pranzo'); slots.push(key+'-cena'); }
+    });
+    if (slots.length === 0) return {plan:{}, pool:all};
+    const rank = {primi:0,zuppe:0,secondi:1,contorni:1,dolci:2,colazione:2};
+    const recs = all.map(id => rec(id)).filter(Boolean).sort((a,b) => (rank[a.cat]||9)-(rank[b.cat]||9));
+    const plan = {}; slots.forEach(sl => plan[sl] = []);
+    let meat = 0, idx = 0; const leftover = [];
+    recs.forEach(r => {
+      if (r.meat && meat >= 1) { leftover.push(r.id); return; }
+      plan[slots[idx % slots.length]].push(r.id);
+      if (r.meat) meat++;
+      idx++;
+    });
+    Object.keys(plan).forEach(k => { if (plan[k].length === 0) delete plan[k]; });
+    return {plan, pool:leftover};
+  });
+}
+
+function shopGroups() {
+  const ids = placedIds();
+  const map = {};
+  ids.forEach(id => {
+    const r = rec(id); if (!r) return;
+    r.ing.forEach(([name, qty, unit, macro]) => {
+      map[macro] = map[macro] || {};
+      const cur = map[macro][name] || {qty:0, unit:unit, num:false, nn:false};
+      if (qty != null && (unit === cur.unit || !cur.num)) { cur.qty += qty; cur.unit = unit; cur.num = true; }
+      else if (qty == null) { cur.nn = true; cur.unit = cur.unit || unit; }
+      map[macro][name] = cur;
+    });
+  });
+  return GORDER.filter(m => map[m]).map(macro => {
+    const items = Object.keys(map[macro]).map(name => {
+      const o = map[macro][name];
+      return {name, amount: o.num ? fmtAmt(o.qty, o.unit) : fmtAmt(null, o.unit), macro};
+    });
+    return {macro, items};
+  });
+}
+
+function copyList() {
+  const groups = shopGroups();
+  const lines = ['Lista della spesa settimana '+getWeekLabel()+':'];
+  groups.forEach(g => g.items.forEach(it => {
+    const key = g.macro+'|'+it.name;
+    if (!state.removed[key]) lines.push(`- ${it.amount} ${it.name.toLowerCase()}`);
+  }));
+  try { navigator.clipboard.writeText(lines.join('\n')); } catch(e) {}
+  setState({copied:true});
+  clearTimeout(copyTimeout);
+  copyTimeout = setTimeout(() => setState({copied:false}), 2200);
+}
+
+// ── BUILD: NAV ────────────────────────────────────────────────────────────────
+
+function buildNav() {
+  const tabs = [['libreria','Libreria'],['calendario','Calendario'],['spesa','Lista della Spesa']];
+  const weekTotal = state.pool.length + placedIds().length;
+  const tabsHtml = tabs.map(([k, label]) => {
+    const active = state.screen === k;
+    return `<div data-action="nav" data-screen="${k}" style="position:relative;padding:7px 16px;font-size:14px;font-weight:600;cursor:pointer;color:${active?'#33302A':'#9a9183'};">
+      ${label}
+      ${active ? '<div style="position:absolute;left:16px;right:16px;bottom:-1px;height:2px;background:#C2745A;border-radius:2px;"></div>' : ''}
+    </div>`;
+  }).join('');
+  return `
+    <div style="position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:0 36px;height:64px;background:rgba(243,238,230,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E1D8C9;">
+      <div style="font-family:'Spectral',serif;font-weight:700;font-size:40px;letter-spacing:.01em;">Larder</div>
+      <div style="display:flex;gap:6px;">${tabsHtml}</div>
+      <div data-action="go-cal" style="display:flex;align-items:center;gap:9px;background:#33302A;color:#F3EEE6;padding:8px 15px;border-radius:30px;font-size:13px;font-weight:600;cursor:pointer;">
+        <span style="font-size:15px;">🗒️</span><span>La settimana</span>
+        <span style="background:#C2745A;color:#fff;min-width:21px;height:21px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;padding:0 6px;">${weekTotal}</span>
+      </div>
+    </div>`;
+}
+
+// ── BUILD: LIBRARY ────────────────────────────────────────────────────────────
+
+function buildLibrary() {
+  const cats = ['Tutte','Primi','Secondi','Contorni','Zuppe','Dolci','Colazione'];
+  const filtersHtml = cats.map(label => {
+    const active = state.filter === label;
+    return `<div data-action="filter" data-filter="${label}" style="font-size:13px;font-weight:600;padding:8px 16px;border-radius:30px;cursor:pointer;background:${active?'#C2745A':'transparent'};color:${active?'#fff':'#6f675a'};border:1px solid ${active?'#C2745A':'#DDD4C6'};">${label}</div>`;
+  }).join('');
+
+  const fkey = state.filter === 'Tutte' ? null : Object.keys(CAT).find(k => CAT[k].label === state.filter);
+  const recipesHtml = DATA.filter(r => !fkey || r.cat === fkey).map(r => {
+    const added = isAdded(r.id);
+    return `<div style="background:#FBF8F2;border-radius:13px;overflow:hidden;box-shadow:0 1px 3px rgba(70,50,30,.07);border:1px solid #EDE5D6;display:flex;flex-direction:column;">
+      <div class="ph" data-action="open-recipe" data-id="${r.id}" style="aspect-ratio:4/3;cursor:pointer;">
+        <em>foto · ${r.lbl}</em>
+        <div style="position:absolute;inset:0;background-image:url(${imgUrl(r.img,520)});background-size:cover;background-position:center;"></div>
+      </div>
+      <div style="padding:11px 13px 13px;display:flex;flex-direction:column;flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:${CAT[r.cat].color};flex:none;"></span>
+          <span style="font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#a89e8d;">${CAT[r.cat].label} · ${r.time}′</span>
+        </div>
+        <div data-action="open-recipe" data-id="${r.id}" style="font-family:'Spectral',serif;font-weight:600;font-size:20px;line-height:1.08;color:#33302A;cursor:pointer;margin-bottom:7px;min-height:43px;">${r.title}</div>
+        <div style="font-size:11.5px;color:#a89e8d;margin-bottom:11px;">${r.kcal} kcal · ${r.p}g proteine</div>
+        <button data-action="toggle-week" data-id="${r.id}" style="margin-top:auto;width:100%;border:none;cursor:pointer;font-size:12.5px;font-weight:700;padding:9px 10px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:6px;background:${added?'#EBF0E1':'#33302A'};color:${added?'#6E8350':'#F3EEE6'};border:1px solid ${added?'#D5E0C2':'#33302A'};">${added?'✓ Nella settimana':'+ Aggiungi alla settimana'}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div style="max-width:1280px;margin:0 auto;padding:34px 36px 80px;">
+      <div style="text-align:center;margin:8px 0 26px;">
+        <div style="font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:#C2745A;margin-bottom:10px;">Il tuo ricettario</div>
+        <h1 style="font-family:'Spectral',serif;font-weight:600;font-size:46px;line-height:1;">La tua libreria</h1>
+        <div style="font-size:13.5px;color:#9a9183;margin-top:9px;">${DATA.length} ricette · clicca una foto per aprire · aggiungi i piatti alla settimana</div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-bottom:30px;flex-wrap:wrap;">${filtersHtml}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:20px;">${recipesHtml}</div>
+    </div>`;
+}
+
+// ── BUILD: CALENDAR ───────────────────────────────────────────────────────────
+
+function buildCalendar() {
+  const dynDays = getDays();
+  const weekLabel = getWeekLabel();
+
+  const poolHtml = state.pool.length === 0
+    ? `<span style="font-size:13px;color:#b3a994;font-style:italic;">Tutti i piatti sono assegnati — aggiungine altri dalla Libreria.</span>`
+    : state.pool.map(id => {
+        const r = rec(id);
+        return `<div class="drag" draggable="true" data-drag-id="${id}" data-drag-from="pool" style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E6DDCD;border-radius:10px;padding:7px 11px 7px 9px;box-shadow:0 1px 2px rgba(70,50,30,.06);">
+          <span style="width:7px;height:7px;border-radius:50%;background:${CAT[r.cat].color};"></span>
+          <span style="font-family:'Spectral',serif;font-weight:600;font-size:16px;line-height:1;">${r.title}</span>
+          <span data-action="remove-pool" data-id="${id}" style="cursor:pointer;color:#bcb3a2;font-size:15px;line-height:1;padding-left:2px;">×</span>
+        </div>`;
+      }).join('');
+
+  const dayToggles = dynDays.map(({key, label, date}) => {
+    const active = state.activeDays[key];
+    return `<div data-action="toggle-day" data-key="${key}" style="flex:1;min-width:96px;cursor:pointer;text-align:center;padding:8px 6px;border-radius:10px;background:${active?'#fff':'#EAE3D6'};border:1.5px solid ${active?'#C2745A':'#E0D7C7'};">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${active?'#33302A':'#b3a994'};">${label} ${date}</div>
+      <div style="font-size:10.5px;color:${active?'#8A9A6F':'#c2b9a7'};margin-top:2px;">${active?'si cucina':'fuori'}</div>
+    </div>`;
+  }).join('');
+
+  const gridHeaders = dynDays.map(({label}) =>
+    `<div style="text-align:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a89e8d;padding-bottom:2px;">${label}</div>`
+  ).join('');
+
+  function buildSlot(slotKey, dayActive) {
+    const ids = state.plan[slotKey] || [];
+    const dishesHtml = ids.map(id => {
+      const r = rec(id);
+      return `<div class="drag" draggable="true" data-drag-id="${id}" data-drag-from="${slotKey}" style="position:relative;display:flex;align-items:center;gap:7px;background:#fff;border-radius:8px;padding:4px 22px 4px 4px;box-shadow:0 1px 2px rgba(70,50,30,.1);">
+        <div class="ph" style="width:30px;height:30px;border-radius:6px;flex:none;">
+          <div style="position:absolute;inset:0;background-image:url(${imgUrl(r.img,120)});background-size:cover;background-position:center;"></div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span style="width:5px;height:5px;border-radius:50%;background:${CAT[r.cat].color};"></span>
+            <span style="font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#a89e8d;">${CAT[r.cat].label}</span>
+          </div>
+          <div style="font-family:'Spectral',serif;font-weight:600;font-size:13.5px;line-height:1.05;color:#33302A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
+        </div>
+        <span data-action="remove-dish" data-slot="${slotKey}" data-id="${id}" style="position:absolute;top:50%;right:5px;transform:translateY(-50%);width:16px;height:16px;border-radius:50%;background:#EFE7D8;color:#a89e8d;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;line-height:1;">×</span>
+      </div>`;
+    }).join('');
+    const has = ids.length > 0;
+    return `<div data-drop-slot="${slotKey}" data-drop-active="${dayActive}" style="min-height:94px;border-radius:11px;padding:7px;background:${has?'#F1EADC':(dayActive?'#F4EFE6':'#ECE6DA')};border:1.5px ${has?'solid':'dashed'} ${has?'#E4DBCB':(dayActive?'#E0D7C7':'#E6DFD2')};display:flex;flex-direction:column;gap:6px;">
+      ${dishesHtml}
+      ${!has ? `<div style="flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;font-size:11px;color:${dayActive?'#c2b9a7':'#cdc4b2'};text-align:center;line-height:1.3;padding:4px;">${dayActive?'trascina qui':'fuori casa'}</div>` : ''}
+      ${has ? `<div style="text-align:center;font-size:9.5px;font-weight:600;letter-spacing:.05em;color:#cbbfa9;text-transform:uppercase;padding:1px;">＋ trascina ancora</div>` : ''}
+    </div>`;
+  }
+
+  const pranzoSlots = dynDays.map(({key}) => buildSlot(key+'-pranzo', state.activeDays[key])).join('');
+  const cenaSlots   = dynDays.map(({key}) => buildSlot(key+'-cena',   state.activeDays[key])).join('');
+
+  return `
+    <div style="max-width:1320px;margin:0 auto;padding:30px 36px 80px;">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:22px;">
+        <div>
+          <div style="font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#C2745A;margin-bottom:8px;">Piano settimanale · ${weekLabel}</div>
+          <h1 style="font-family:'Spectral',serif;font-weight:600;font-size:40px;line-height:1;">Cosa cuciniamo</h1>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button data-action="clear-calendar" style="font-size:13.5px;font-weight:600;cursor:pointer;padding:11px 18px;border-radius:30px;border:1.5px solid #E0D7C7;background:transparent;color:#a89e8d;display:flex;align-items:center;gap:7px;">✕ Svuota calendario</button>
+          <button data-action="clear-pool" style="font-size:13.5px;font-weight:600;cursor:pointer;padding:11px 18px;border-radius:30px;border:1.5px solid #E0D7C7;background:transparent;color:#a89e8d;display:flex;align-items:center;gap:7px;">✕ Svuota da cucinare</button>
+          <button data-action="auto-distribute" style="font-size:13.5px;font-weight:700;cursor:pointer;padding:11px 18px;border-radius:30px;border:1.5px solid #C2745A;background:#FBF8F2;color:#B05E42;display:flex;align-items:center;gap:7px;">✨ Auto-distribuisci</button>
+          <button data-action="go-spesa" style="font-size:13.5px;font-weight:700;cursor:pointer;padding:11px 18px;border-radius:30px;border:none;background:#33302A;color:#F3EEE6;display:flex;align-items:center;gap:7px;">🛒 Genera Lista della Spesa</button>
+        </div>
+      </div>
+
+      <div style="background:#FBF8F2;border:1px dashed #D8CDB9;border-radius:14px;padding:15px 18px;margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#a89e8d;margin-bottom:11px;">Da cucinare — trascina nei pasti 👇</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;min-height:40px;">${poolHtml}</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">${dayToggles}</div>
+
+      <div style="display:grid;grid-template-columns:64px repeat(7,1fr);gap:9px;align-items:stretch;">
+        <div></div>${gridHeaders}
+        <div style="display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-family:'Spectral',serif;font-weight:600;font-size:17px;color:#C2745A;">Pranzo</div>
+        ${pranzoSlots}
+        <div style="display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-family:'Spectral',serif;font-weight:600;font-size:17px;color:#8A9A6F;">Cena</div>
+        ${cenaSlots}
+      </div>
+    </div>`;
+}
+
+// ── BUILD: SHOPPING ───────────────────────────────────────────────────────────
+
+function buildShopping() {
+  const groups = shopGroups();
+  const weekLabel = getWeekLabel();
+  const totalItems = groups.reduce((a,g) => a+g.items.length, 0);
+  const activeCount = groups.reduce((a,g) => a+g.items.filter(it => !state.removed[g.macro+'|'+it.name]).length, 0);
+  const placedCount = placedIds().length;
+
+  const groupsHtml = groups.map(g => {
+    const open = !state.collapsed[g.macro];
+    const color = GCOLOR[g.macro];
+    const itemsHtml = g.items.map(it => {
+      const key = g.macro+'|'+it.name;
+      const on = !state.removed[key];
+      return `<div data-action="toggle-item" data-key="${key}" style="display:flex;align-items:center;gap:12px;padding:9px 4px;border-top:1px solid #EFE7D8;cursor:pointer;">
+        <span style="width:19px;height:19px;border-radius:5px;border:1.5px solid ${on?color:'#cdc4b2'};background:${on?color:'transparent'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;">${on?'✓':''}</span>
+        <span style="font-size:14.5px;font-weight:600;color:${on?'#B05E42':'#c2b9a7'};min-width:74px;${on?'':'text-decoration:line-through;'}">${it.amount}</span>
+        <span style="font-size:14.5px;color:${on?'#4d473c':'#c2b9a7'};${on?'':'text-decoration:line-through;'}">${it.name}</span>
+      </div>`;
+    }).join('');
+
+    return `<div style="background:#FBF8F2;border:1px solid #EAE1D1;border-radius:14px;margin-bottom:14px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 18px;">
+        <div data-action="toggle-group" data-macro="${g.macro}" style="display:flex;align-items:center;gap:11px;cursor:pointer;flex:1;">
+          <span style="font-size:13px;color:#b3a994;transform:rotate(${open?'90deg':'0deg'});transition:transform .15s;display:inline-block;">▸</span>
+          <span style="width:10px;height:10px;border-radius:3px;background:${color};"></span>
+          <span style="font-family:'Spectral',serif;font-weight:600;font-size:22px;color:#33302A;">${g.macro}</span>
+          <span style="font-size:12px;color:#a89e8d;">${g.items.length} ${g.items.length===1?'voce':'voci'}</span>
+          ${PANTRY[g.macro] ? `<span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#B89A5B;background:#F2E9D2;padding:3px 8px;border-radius:20px;">dispensa</span>` : ''}
+        </div>
+        <span data-action="remove-group" data-macro="${g.macro}" style="font-size:12px;font-weight:600;color:#B05E42;cursor:pointer;white-space:nowrap;">Rimuovi tutte</span>
+      </div>
+      ${open ? `<div style="padding:0 18px 8px;">${itemsHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const emptyHtml = totalItems === 0 ? `
+    <div style="background:#FBF8F2;border:1px dashed #D8CDB9;border-radius:14px;padding:48px;text-align:center;color:#a89e8d;">
+      <div style="font-size:34px;margin-bottom:10px;">🧺</div>
+      <div style="font-family:'Spectral',serif;font-size:22px;color:#6f675a;margin-bottom:6px;">Nessun piatto in programma</div>
+      <div style="font-size:13.5px;">Aggiungi dei piatti al calendario per generare la lista.</div>
+    </div>` : '';
+
+  return `
+    <div style="max-width:880px;margin:0 auto;padding:30px 36px 90px;">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#C2745A;margin-bottom:8px;">Settimana ${weekLabel}</div>
+          <h1 style="font-family:'Spectral',serif;font-weight:600;font-size:42px;line-height:1;">Lista della Spesa</h1>
+        </div>
+        <button data-action="copy-list" style="font-size:14px;font-weight:700;cursor:pointer;padding:12px 22px;border-radius:30px;border:none;background:${state.copied?'#6E8350':'#33302A'};color:#F3EEE6;display:flex;align-items:center;gap:8px;">${state.copied?'✓ Copiata!':'📋 Copia Lista'}</button>
+      </div>
+      <div style="font-size:13px;color:#9a9183;margin-bottom:26px;">${activeCount} ingredienti da comprare · ${placedCount} piatti in programma</div>
+      ${emptyHtml}
+      ${groupsHtml}
+    </div>`;
+}
+
+// ── BUILD: MODAL ──────────────────────────────────────────────────────────────
+
+function buildModal() {
+  if (!state.modal) return '';
+  const r = rec(state.modal);
+  if (!r) return '';
+  const added = isAdded(r.id);
+  const factor = state.servings / r.serv;
+
+  const tagsHtml = r.tags.map(t =>
+    `<span style="font-size:12px;font-weight:600;color:#7a9160;background:#E9EEDD;padding:5px 12px;border-radius:20px;">${t}</span>`
+  ).join('');
+
+  const ingsHtml = r.ing.map(([name, qty, unit]) =>
+    `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #E9E0D0;">
+      <span style="font-weight:700;font-size:14px;color:#B05E42;min-width:72px;">${fmtAmt(qty==null?null:qty*factor, unit)}</span>
+      <span style="font-size:14px;color:#4d473c;">${name}</span>
+    </div>`
+  ).join('');
+
+  const nutrition = [
+    ['Calorie', r.kcal+' kcal'],
+    ['Proteine', r.p+' g'],
+    ['Carboidrati', r.c+' g'],
+    ['Grassi', r.f+' g'],
+    ['Fibre', r.fib+' g'],
+  ];
+  const nutHtml = nutrition.map(([label, value], i) =>
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid ${i===nutrition.length-1?'transparent':'#EFE7D8'};">
+      <span style="font-size:13.5px;color:#6f675a;">${label}</span>
+      <span style="font-family:'Spectral',serif;font-weight:700;font-size:20px;color:#33302A;">${value}</span>
+    </div>`
+  ).join('');
+
+  const stepsHtml = r.steps.map((text, i) =>
+    `<div style="display:flex;gap:15px;margin-bottom:16px;">
+      <span style="flex:none;width:30px;height:30px;border-radius:50%;background:#C2745A;color:#fff;font-family:'Spectral',serif;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;">${i+1}</span>
+      <span style="font-size:14.5px;line-height:1.6;color:#4d473c;padding-top:4px;">${text}</span>
+    </div>`
+  ).join('');
+
+  return `
+    <div id="modal-overlay" style="position:fixed;inset:0;z-index:60;background:rgba(40,34,26,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:46px 20px;overflow-y:auto;">
+      <div id="modal-card" style="background:#F6F1E8;width:100%;max-width:760px;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4);">
+        <div class="ph" style="height:300px;position:relative;">
+          <em>foto · ${r.lbl}</em>
+          <div style="position:absolute;inset:0;background-image:url(${imgUrl(r.img,900)});background-size:cover;background-position:center;"></div>
+          <span data-action="close-modal" style="position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;line-height:1;z-index:2;">×</span>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(transparent,rgba(30,24,18,.78));"></div>
+          <div style="position:absolute;left:26px;bottom:18px;right:26px;">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:${CAT[r.cat].color};"></span>
+              <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#f0e7d8;">${CAT[r.cat].label} · ${r.time} min</span>
+            </div>
+            <h2 style="font-family:'Spectral',serif;font-weight:600;font-size:38px;line-height:1.02;margin:0;color:#fff;">${r.title}</h2>
+          </div>
+        </div>
+
+        <div style="padding:24px 28px 8px;display:flex;gap:10px;flex-wrap:wrap;">${tagsHtml}</div>
+
+        <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:26px;padding:18px 28px 26px;">
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <h3 style="font-family:'Spectral',serif;font-weight:600;font-size:24px;margin:0;">Ingredienti</h3>
+              <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E6DDCD;border-radius:30px;padding:4px 6px;">
+                <span data-action="dec-servings" style="width:26px;height:26px;border-radius:50%;background:#F0E9DC;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;color:#8a7f6c;line-height:1;">−</span>
+                <span style="font-size:13px;font-weight:700;min-width:62px;text-align:center;">${state.servings} porzioni</span>
+                <span data-action="inc-servings" style="width:26px;height:26px;border-radius:50%;background:#F0E9DC;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;color:#8a7f6c;line-height:1;">+</span>
+              </div>
+            </div>
+            ${ingsHtml}
+          </div>
+          <div>
+            <h3 style="font-family:'Spectral',serif;font-weight:600;font-size:24px;margin:0 0 14px;">Valori · porzione</h3>
+            <div style="background:#fff;border:1px solid #EAE1D1;border-radius:14px;padding:6px 16px;">${nutHtml}</div>
+          </div>
+        </div>
+
+        <div style="padding:0 28px 26px;">
+          <h3 style="font-family:'Spectral',serif;font-weight:600;font-size:24px;margin:0 0 14px;">Preparazione</h3>
+          ${stepsHtml}
+        </div>
+
+        <div style="position:sticky;bottom:0;background:#F6F1E8;border-top:1px solid #E6DDCD;padding:15px 28px;display:flex;gap:12px;">
+          <button data-action="toggle-week" data-id="${r.id}" style="flex:1;font-size:14.5px;font-weight:700;cursor:pointer;padding:13px;border-radius:11px;border:none;background:${added?'#EBF0E1':'#C2745A'};color:${added?'#6E8350':'#fff'};">${added?'✓ Nella settimana — rimuovi':'+ Aggiungi alla settimana'}</button>
+          <button data-action="close-modal" style="font-size:14.5px;font-weight:600;cursor:pointer;padding:13px 22px;border-radius:11px;border:1px solid #D8CDB9;background:transparent;color:#6f675a;">Chiudi</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── RENDER & EVENTS ───────────────────────────────────────────────────────────
+
+function render() {
+  document.getElementById('app').innerHTML = `
+    <div style="min-height:100vh;">
+      ${buildNav()}
+      ${state.screen==='libreria'  ? buildLibrary()  : ''}
+      ${state.screen==='calendario'? buildCalendar() : ''}
+      ${state.screen==='spesa'     ? buildShopping() : ''}
+      ${state.modal                ? buildModal()    : ''}
+    </div>`;
+  attachEvents();
+}
+
+function attachEvents() {
+  const app = document.getElementById('app');
+
+  // ── click delegation ──────────────────────────────────────────────────────
+  app.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const {action, screen, filter, id, key, macro, slot} = el.dataset;
+
+    switch (action) {
+      case 'nav':             setState({screen}); break;
+      case 'go-cal':         setState({screen:'calendario'}); break;
+      case 'filter':         setState({filter}); break;
+      case 'open-recipe':    setState({modal:id, servings:rec(id)?.serv||4}); break;
+
+      case 'toggle-week':
+        e.stopPropagation();
+        toggleWeek(id);
+        break;
+
+      case 'remove-pool':    removeWeek(id); break;
+
+      case 'remove-dish':
+        setState(s => {
+          const plan = clonePlan(s.plan);
+          if (plan[slot]) { plan[slot] = plan[slot].filter(x=>x!==id); if(!plan[slot].length) delete plan[slot]; }
+          return {plan, pool:[...s.pool, id]};
+        });
+        break;
+
+      case 'toggle-day': {
+        const k = el.dataset.key;
+        setState(s => {
+          const active = !s.activeDays[k];
+          const activeDays = {...s.activeDays, [k]:active};
+          if (active) return {activeDays};
+          const plan = clonePlan(s.plan); let pool = [...s.pool];
+          [k+'-pranzo', k+'-cena'].forEach(sl => { if(plan[sl]){ pool=pool.concat(plan[sl]); delete plan[sl]; } });
+          return {activeDays, plan, pool};
+        });
+        break;
+      }
+
+      case 'clear-calendar':  clearCalendar(); break;
+      case 'clear-pool':      clearPool(); break;
+      case 'auto-distribute': autoDistribute(); break;
+      case 'go-spesa':        setState({screen:'spesa'}); break;
+
+      case 'toggle-item':
+        setState(s => ({removed:{...s.removed, [key]:!s.removed[key]}}));
+        break;
+
+      case 'toggle-group':
+        setState(s => ({collapsed:{...s.collapsed, [macro]:!s.collapsed[macro]}}));
+        break;
+
+      case 'remove-group':
+        e.stopPropagation();
+        setState(s => {
+          const rm = {...s.removed};
+          shopGroups().find(g=>g.macro===macro)?.items.forEach(it => rm[macro+'|'+it.name] = true);
+          return {removed:rm};
+        });
+        break;
+
+      case 'copy-list':    copyList(); break;
+      case 'close-modal':  setState({modal:null}); break;
+      case 'dec-servings': setState(s => ({servings:Math.max(1, s.servings-1)})); break;
+      case 'inc-servings': setState(s => ({servings:Math.min(12, s.servings+1)})); break;
+    }
+  });
+
+  // modal overlay click-outside
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', e => { if (e.target === overlay) setState({modal:null}); });
+  }
+
+  // ── drag & drop ───────────────────────────────────────────────────────────
+  app.addEventListener('dragstart', e => {
+    const el = e.target.closest('[data-drag-id]');
+    if (!el) return;
+    drag = {id:el.dataset.dragId, from:el.dataset.dragFrom};
+    if (e.dataTransfer) { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', drag.id); }
+    setTimeout(() => el.style.opacity='0.45', 0);
+  });
+
+  app.addEventListener('dragend', e => {
+    const el = e.target.closest('[data-drag-id]');
+    if (el) el.style.opacity='';
+  });
+
+  app.addEventListener('dragover', e => {
+    const slot = e.target.closest('[data-drop-slot]');
+    if (slot) { e.preventDefault(); slot.classList.add('slot-over'); }
+  });
+
+  app.addEventListener('dragleave', e => {
+    const slot = e.target.closest('[data-drop-slot]');
+    if (slot && !slot.contains(e.relatedTarget)) slot.classList.remove('slot-over');
+  });
+
+  app.addEventListener('drop', e => {
+    const slot = e.target.closest('[data-drop-slot]');
+    if (!slot) return;
+    e.preventDefault();
+    slot.classList.remove('slot-over');
+    if (!drag || slot.dataset.dropActive !== 'true') return;
+    const {id, from} = drag; drag = null;
+    setState(s => {
+      const plan = clonePlan(s.plan); let pool = [...s.pool];
+      const slotKey = slot.dataset.dropSlot;
+      if (from === 'pool') { pool = pool.filter(x=>x!==id); }
+      else if (plan[from]) { plan[from]=plan[from].filter(x=>x!==id); if(!plan[from].length) delete plan[from]; }
+      const arr = plan[slotKey]||[]; if (!arr.includes(id)) arr.push(id); plan[slotKey]=arr;
+      return {plan, pool};
+    });
+  });
+}
+
+render();
+</script>
+</body>
+</html>
