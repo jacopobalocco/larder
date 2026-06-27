@@ -1,0 +1,37 @@
+{
+  "mcpServers": {
+    "larder": {
+      "type": "stdio",
+      "command": "/Users/jacopobalocco/code_repos/larder/.venv/bin/python3",
+      "args": [
+        "/Users/jacopobalocco/code_repos/larder/mcp_server/server.py"
+      ],
+      "env": {}
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "claude-code",
+        "--project",
+        "/Users/jacopobalocco/code_repos/larder"
+      ],
+      "env": {}
+    },
+    "graphify": {
+      "type": "stdio",
+      "command": "/Users/jacopobalocco/code_repos/larder/.venv/bin/python3",
+      "args": [
+        "-m",
+        "graphify.serve",
+        "/Users/jacopobalocco/code_repos/larder/graphify-out/graph.json"
+      ],
+      "env": {}
+    }
+  }
+}

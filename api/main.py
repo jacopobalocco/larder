@@ -3,8 +3,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from api.database import init_db
 from api.routes.recipes import router as recipes_router
+from api.routes.meal_plan import router as meal_plan_router
 
 app = FastAPI(title="Larder API", version="0.1.0")
 
@@ -16,6 +18,11 @@ app.add_middleware(
 )
 
 app.include_router(recipes_router)
+app.include_router(meal_plan_router)
+
+IMAGES_DIR = Path(__file__).parent.parent / "data" / "images"
+IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/images", StaticFiles(directory=str(IMAGES_DIR)), name="images")
 
 FRONTEND = Path(__file__).parent.parent / "frontend" / "index.html"
 

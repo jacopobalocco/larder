@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Write(**)",
+      "Edit(**)",
+      "Bash(git:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(sed:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(pip:*)",
+      "Bash(make:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(source:*)",
+      "Bash(uv:*)",
+      "mcp__larder__suggest_dinner",
+      "Bash(.venv/bin/python3 *)",
+      "Bash(pkill -f \"uvicorn api.main:app\")",
+      "mcp__larder__get_meal_plan",
+      "Skill(claude-in-chrome)",
+      "Bash(sqlite3 *)",
+      "Bash(pkill -f \"uvicorn api.main\")",
+      "Bash(lsof -i :8765 -sTCP:LISTEN)",
+      "Bash(.venv/bin/python *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(sudo:*)",
+      "Bash(chmod 777:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "enabledMcpjsonServers": [
+    "larder",
+    "serena",
+    "graphify"
+  ]
+}

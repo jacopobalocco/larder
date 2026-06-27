@@ -47,6 +47,14 @@ def init_db() -> None:
             step_number INTEGER NOT NULL,
             text        TEXT    NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS meal_plan (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            date        TEXT    NOT NULL,
+            meal_type   TEXT    NOT NULL DEFAULT 'cena',
+            recipe_id   INTEGER REFERENCES recipes(id) ON DELETE SET NULL,
+            note        TEXT
+        );
     """)
     conn.commit()
     conn.close()
