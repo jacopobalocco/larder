@@ -86,9 +86,11 @@ let drag = null;
 let copyTimeout = null;
 
 function setState(updates) {
+  const prevPlan = state.plan;
   if (typeof updates === 'function') updates = updates(state);
   state = {...state, ...updates};
   render();
+  if (state.plan !== prevPlan) scheduleSyncPlan();
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
@@ -105,7 +107,7 @@ function clonePlan(p) {
 
 function imgUrl(img, w) {
   if (!img) return '';
-  if (img.startsWith('http')) return img;
+  if (img.startsWith('http') || img.startsWith('/')) return img;
   return `https://images.unsplash.com/photo-${img}?w=${w}&q=80&auto=format&fit=crop`;
 }
 
@@ -211,6 +213,65 @@ function shopGroups() {
     });
     return {macro, items};
   });
+}
+
+// ── PLAN PERSISTENCE ──────────────────────────────────────────────────────────
+
+function isoDate(d) { return d.toISOString().slice(0, 10); }
+
+let syncTimer = null;
+function scheduleSyncPlan() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncPlan, 400);
+}
+
+async function syncPlan() {
+  const days = getDays();
+  const dayMap = {};
+  days.forEach(d => { dayMap[d.key] = isoDate(d.dateObj); });
+
+  const allEntries = (await Promise.all(
+    days.map(({dateObj}) =>
+      fetch(`/meal-plan/${isoDate(dateObj)}`).then(r => r.ok ? r.json() : [])
+    )
+  )).flat();
+
+  await Promise.all(allEntries.map(e => fetch(`/meal-plan/${e.id}`, {method:'DELETE'})));
+
+  await Promise.all(
+    Object.entries(state.plan).flatMap(([slotKey, ids]) => {
+      const [dayKey, mealType] = slotKey.split('-');
+      const date = dayMap[dayKey];
+      if (!date) return [];
+      return ids.map(id => fetch('/meal-plan/', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({date, meal_type: mealType, recipe_id: parseInt(id)}),
+      }));
+    })
+  );
+}
+
+async function loadPlanFromApi() {
+  const days = getDays();
+  const dateToKey = {};
+  days.forEach(d => { dateToKey[isoDate(d.dateObj)] = d.key; });
+
+  const allEntries = (await Promise.all(
+    days.map(({dateObj}) =>
+      fetch(`/meal-plan/${isoDate(dateObj)}`).then(r => r.ok ? r.json() : [])
+    )
+  )).flat();
+
+  const plan = {};
+  for (const e of allEntries) {
+    if (!e.recipe_id) continue;
+    const dayKey = dateToKey[e.date];
+    if (!dayKey) continue;
+    const slotKey = `${dayKey}-${e.meal_type}`;
+    (plan[slotKey] = plan[slotKey] || []).push(String(e.recipe_id));
+  }
+  return plan;
 }
 
 function copyList() {
@@ -658,7 +719,12 @@ function attachEvents() {
   });
 }
 
-loadRecipes().then(() => { render(); attachEvents(); });
+loadRecipes().then(async () => {
+  const plan = await loadPlanFromApi();
+  state = {...state, plan};
+  render();
+  attachEvents();
+});
 </script>
 </body>
 </html>
