@@ -222,7 +222,8 @@ function isoDate(d) { return d.toISOString().slice(0, 10); }
 let syncTimer = null;
 function scheduleSyncPlan() {
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(syncPlan, 400);
+  try { localStorage.setItem('larder_plan', JSON.stringify(state.plan)); } catch(_) {}
+  syncTimer = setTimeout(() => syncPlan().catch(() => { syncTimer = setTimeout(scheduleSyncPlan, 5000); }), 400);
 }
 
 async function syncPlan() {
@@ -720,10 +721,23 @@ function attachEvents() {
 }
 
 loadRecipes().then(async () => {
-  const plan = await loadPlanFromApi();
+  let plan = {};
+  try { plan = await loadPlanFromApi(); } catch(_) {}
+  if (Object.keys(plan).length === 0) {
+    try {
+      const saved = localStorage.getItem('larder_plan');
+      if (saved) {
+        plan = JSON.parse(saved);
+        // DB era vuoto ma localStorage ha dati: ri-sincronizza
+        state = {...state, plan};
+        scheduleSyncPlan();
+      }
+    } catch(_) {}
+  }
   state = {...state, plan};
   render();
   attachEvents();
+  window.addEventListener('online', scheduleSyncPlan);
 });
 </script>
 </body>
