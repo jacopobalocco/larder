@@ -27,7 +27,34 @@ Carica i tool Chrome con ToolSearch in una sola chiamata:
 - Naviga a `$ARGUMENTS` e fai uno screenshot per confermare il caricamento
 - Leggi il testo della pagina con `get_page_text` ed estrai manualmente i campi
 
-## 3. Compila i campi ricetta
+## 3. Verifica e download immagine PRIMA di procedere (BLOCCO)
+
+**Regola assoluta: non salvare nel DB senza immagine verificata e scaricata localmente.**
+
+Le immagini esterne NON caricano in larder (hotlink protection dai siti sorgente). L'immagine va sempre scaricata localmente.
+
+Dall'output dello scraping hai il campo `image`. Se è null o vuoto:
+- Apri la pagina originale in Chrome e usa `javascript_tool` per estrarre og:image
+- Se la pagina non ha immagini → cerca su unsplash.com o pexels.com
+- **Non procedere al passo 4 finché non hai un URL immagine valido**
+
+Verifica che l'URL sia raggiungibile:
+```bash
+curl -sI "<image_url>" | grep -E "HTTP|Content-Type"
+```
+Deve restituire `HTTP 200` e `Content-Type: image/`. Se non passa → trova un altro URL.
+
+Scarica l'immagine localmente (usa un ID temporaneo, poi rinominala dopo il salvataggio):
+```bash
+curl -sL -A "Mozilla/5.0" -e "https://www.google.com/" "<image_url>" -o "data/images/TMP.jpg"
+```
+Dopo aver salvato la ricetta e ottenuto l'`id`, rinomina il file e aggiorna il DB:
+```bash
+mv data/images/TMP.jpg data/images/<id>.jpg
+```
+Poi chiama `mcp__larder__update_recipe_image` con `image_id = "/images/<id>.jpg"`.
+
+## 4. Compila i campi ricetta
 
 Dai dati estratti (recipe-scrapers o Chrome), ricava:
 
@@ -87,18 +114,18 @@ Content-Type: application/json
 In caso di successo mostra: `✅ Ricetta salvata — ID <id>: <name>`.
 In caso di errore mostra il messaggio del server e suggerisci cosa correggere.
 
-## 6. Verifica immagine su larder (CRITICO)
-
-Dopo il salvataggio:
+## 6. Verifica immagine nel browser (OBBLIGATORIO — l'import non è completato senza questo step)
 
 1. **Naviga a larder** (`http://localhost:PORT`) via Chrome
-2. **Scorri finché non trovi** la ricetta appena salvata nella lista
-3. **Controlla se l'immagine è visibile** nel card della ricetta
-4. **Se l'immagine manca:**
-   - Controlla l'URL salvato nel DB — deve iniziare con `http`
-   - Se l'URL è rotto: torna alla pagina originale della ricetta e riestraci l'immagine (non usare Unsplash se il sito originale ha un'immagine)
-   - Chiama `mcp__larder__update_recipe_image` con il nuovo URL
-   - Ricarica larder (F5) e verifica — fino a 3 tentativi
-5. **Se l'immagine è presente:** ✅ Processo completato
+2. **Trova il card** della ricetta appena salvata
+3. **L'immagine deve essere visibile** — non il placeholder grigio con il nome
+4. **Se il placeholder è ancora visibile:**
+   - Ricarica la pagina (F5) e attendi il caricamento completo
+   - Se persiste: controlla l'URL immagine nel DB con `mcp__larder__get_recipe`
+   - Torna alla pagina originale della ricetta → riestraci og:image con `javascript_tool`
+   - Aggiorna con `mcp__larder__update_recipe_image`, ricarica, verifica
+   - Ripeti fino a 3 tentativi con URL diversi
+   - Solo se la pagina originale è priva di immagini → usa unsplash.com o pexels.com
+5. **Solo quando l'immagine è visibile nel browser:** ✅ Import completato
 
-Mostra: `🖼️ Immagine verificata su larder — ricetta pronta!`
+**Non dichiarare mai l'import completato se il card mostra il placeholder.**

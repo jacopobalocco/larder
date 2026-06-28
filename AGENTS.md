@@ -113,18 +113,38 @@ Tutte le ricette importate devono essere **sempre**:
 - Porzioni espresse in **sistema metrico** (`g`, `ml`, `cucchiai`, `cucchiaini`), **mai** in unità anglosassoni (`oz`, `cup`, `tsp`)
 - Se una ricetta originale usa unità anglosassoni, convertire prima di salvare (es. 1 cup = 240 ml, 1 oz = 28 g)
 
-## Ricette — Verifiche Finali (Immagini)
+## Ricette — Immagini: Regola Assoluta
 
-Dopo il salvataggio di ogni ricetta **SEMPRE**:
+**È VIETATO salvare una ricetta nel DB senza immagine.** Nessuna eccezione.
+
+### Prima di salvare
+
+1. Estrarre l'URL immagine dalla pagina (og:image via `javascript_tool` o `s.image()` da recipe-scrapers)
+2. Verificare che l'URL sia valido: `curl -sI <url>` deve restituire `HTTP 200` e `Content-Type: image/`
+3. Se l'URL non è valido o mancante → cercare l'immagine sulla **pagina originale** prima di procedere
+4. Solo se la pagina originale non ha immagini → cercare su unsplash.com o pexels.com
+5. **Non salvare nel DB finché l'immagine non è verificata**
+6. **Scaricare l'immagine localmente** prima del salvataggio — le immagini esterne non caricano in larder (hotlink protection). Usa `curl -sL -A "Mozilla/5.0" -e "https://www.google.com/" "<url>" -o "data/images/TMP.jpg"`, poi rinominala a `data/images/<id>.jpg` dopo aver ottenuto l'ID
+
+### Salvataggio immagine locale (obbligatorio)
+
+Le immagini esterne non caricano in larder (hotlink protection). Dopo aver verificato l'URL con `curl -sI`, scaricala localmente **prima di chiamare il POST /recipes/**:
+
+```bash
+curl -sL -A "Mozilla/5.0" -e "https://www.google.com/" "<image_url>" -o "data/images/TEMP_ID.jpg"
+```
+
+Poi aggiorna `image_id` nel payload con `/images/<id>.jpg` **dopo** aver ottenuto l'ID dal POST, oppure usa `mcp__larder__update_recipe_image` con il path locale.
+
+### Dopo il salvataggio
+
 1. Aprire larder in Chrome (`http://localhost:PORT`)
-2. Verificare che il card della ricetta mostri l'immagine
-3. **Se l'immagine è assente o broken:**
-   - Controllare l'URL salvato nel DB (deve iniziare con `http`)
-   - Se valido ma non carica: il sito potrebbe aver cambiato URL → controllare la **pagina originale della ricetta** e usare il nuovo URL
-   - Se URL è rotto: trovare immagine corretta dalla **pagina originale** (sempre prioritario rispetto a Unsplash)
-   - Se pagina originale non ha immagine: cercarne una su unsplash.com o pexels.com (SOLO in questo caso)
-   - Aggiornare con `mcp__larder__update_recipe_image`
-4. Ricaricare larder (F5) e verificare che l'immagine sia visibile
+2. Verificare che il card della ricetta mostri l'immagine (non il placeholder grigio)
+3. **Se l'immagine non appare nel browser:**
+   - Controllare che `image_id` nel DB sia `/images/<id>.jpg` (path locale)
+   - Verificare che il file esista in `data/images/`
+   - Riscaricare con `curl` se necessario e aggiornare con `mcp__larder__update_recipe_image`
+4. Non considerare l'import completato finché l'immagine non è visibile nel browser
 
 ## Agent Log
 
