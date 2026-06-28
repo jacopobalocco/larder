@@ -103,3 +103,20 @@ Content-Type: application/json
 
 In caso di successo mostra: `✅ Ricetta salvata — ID <id>: <name>`.
 In caso di errore mostra il messaggio del server e suggerisci cosa correggere.
+
+## 6. Verifica immagine su larder (CRITICO)
+
+Dopo il salvataggio:
+
+1. **Naviga a larder** (`http://localhost:PORT`) via Chrome
+2. **Scorri finché non trovi** la ricetta appena salvata nella lista
+3. **Controlla se l'immagine è visibile** nel card della ricetta
+4. **Se l'immagine manca:**
+   - Usa `WebSearch` per trovare una foto alternativa: `"<nome ricetta>" food photography site:unsplash.com OR site:pexels.com`
+   - Prendi il primo URL `.jpg` o `.webp` diretto
+   - Chiama `mcp__larder__update_recipe_image` con: `{ recipe_id: <id>, image_url: <url> }`
+   - Ricarica larder (F5) e verifica che l'immagine sia ora visibile
+   - Se ancora non appare, prova il prossimo risultato di ricerca (fino a 3 tentativi)
+5. **Se l'immagine è presente:** ✅ Processo completato
+
+Mostra: `🖼️ Immagine verificata su larder — ricetta pronta!`

@@ -521,12 +521,13 @@ function buildModal() {
     </div>`
   ).join('');
 
+  const fmtNutr = (v, u) => v != null ? v + ' ' + u : '-';
   const nutrition = [
-    ['Calorie', r.kcal+' kcal'],
-    ['Proteine', r.p+' g'],
-    ['Carboidrati', r.c+' g'],
-    ['Grassi', r.f+' g'],
-    ['Fibre', r.fib+' g'],
+    ['Calorie', fmtNutr(r.kcal, 'kcal')],
+    ['Proteine', fmtNutr(r.p, 'g')],
+    ['Carboidrati', fmtNutr(r.c, 'g')],
+    ['Grassi', fmtNutr(r.f, 'g')],
+    ['Fibre', fmtNutr(r.fib, 'g')],
   ];
   const nutHtml = nutrition.map(([label, value], i) =>
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid ${i===nutrition.length-1?'transparent':'#EFE7D8'};">

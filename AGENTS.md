@@ -57,6 +57,103 @@ Il server dell'app gira su porta configurata. Per accedere dall'iPhone (anch'ess
 http://localhost:PORT
 ```
 
+## Famiglia e Piano Alimentare
+
+**Utente:** (vedi AGENTS.local.md)
+**Pranzo:** solo, al lavoro — pasti pratici, trasportabili o da riscaldare, porzione singola
+**Cena:** con la famiglia:
+- **Compagna**
+- **Figlia maggiore** (4 anni) — selettiva, fatica con le verdure visibili; meglio nasconderle o presentarle in modo creativo
+- **Figlio minore** (2 anni) — mangia di tutto
+
+**Profilo nutrizionale:**
+- Peso: XX kg · Altezza: 184 cm → sottopeso (BMI ~18.3), obiettivo: aumento massa
+- Allenamento: ~5 mattine/settimana → fabbisogno calorico elevato, alto bisogno proteico
+- Pranzo post-allenamento (o comunque dopo): privilegiare proteine + carboidrati per recupero muscolare
+- Target indicativo: target calorico/proteico: vedi AGENTS.local.md
+
+**Allergie e intolleranze:**
+- **Figlio minore (2 anni):** allergico ad anacardi e pistacchi — nessuna ricetta da cena deve contenerli
+
+**Frequenza proteine animali (regola settimanale):**
+- Carne (rossa o bianca): max 1 volta/settimana
+- Pesce: max 1 volta/settimana
+- Formaggio: max 1 volta/settimana
+- Uova: max 1 volta/settimana
+- I restanti pasti devono essere a base di legumi, cereali, verdure, tofu o altre proteine vegetali
+
+**Principi guida:**
+- Cibo sano, prevalentemente mediterraneo
+- Preparazione rapida (≤ 30 min per le cene, idealmente)
+- Per la figlia maggiore: verdure integrate negli impasti, passate o camuffate (es. polpette, sughi, vellutate)
+- Per l'adulto 1: pranzi calorici e proteici per supportare la crescita muscolare
+- Varietà proteica: prevalentemente legumi e cereali integrali, con carne/pesce/formaggio/uova 1x/settimana ciascuno
+- Porzioni cena: 4 persone (2 adulti + 2 bimbi piccoli ≈ 3 porzioni adulto)
+
+## Ricette — Standardizzazione
+
+Tutte le ricette importate devono essere **sempre**:
+- Tradotte completamente in **italiano** (titolo, ingredienti, passaggi, descrizione)
+- Porzioni espresse in **sistema metrico** (`g`, `ml`, `cucchiai`, `cucchiaini`), **mai** in unità anglosassoni (`oz`, `cup`, `tsp`)
+- Se una ricetta originale usa unità anglosassoni, convertire prima di salvare (es. 1 cup = 240 ml, 1 oz = 28 g)
+
+## Ricette — Verifiche Finali (Immagini)
+
+Dopo il salvataggio di ogni ricetta **SEMPRE**:
+1. Aprire larder in Chrome (`http://localhost:PORT`)
+2. Verificare che il card della ricetta mostri l'immagine
+3. **Se l'immagine è assente o broken:**
+   - Controllare l'URL salvato nel DB (deve iniziare con `http`)
+   - Se valido ma non carica: il sito potrebbe aver cambiato URL → controllare la **pagina originale della ricetta** e usare il nuovo URL
+   - Se URL è rotto: trovare immagine corretta dalla **pagina originale** (sempre prioritario rispetto a Unsplash)
+   - Se pagina originale non ha immagine: cercarne una su unsplash.com o pexels.com (SOLO in questo caso)
+   - Aggiornare con `mcp__larder__update_recipe_image`
+4. Ricaricare larder (F5) e verificare che l'immagine sia visibile
+
+## Agent Log
+
+**Regola obbligatoria:** scrivi in `agent.log` (root del progetto) ogni operazione significativa eseguita durante la sessione. Scopo: tracciabilità cross-sessione di cosa è stato fatto o non fatto.
+
+**Formato — una riga per operazione, il più sintetico possibile:**
+```
+YYYY-MM-DD HH:MM | AZIONE | dettaglio
+```
+Esempi:
+```
+2026-06-27 10:30 | RECIPE_IMPORT | "Pasta al pesto" da giallozafferano.it → OK
+2026-06-27 10:31 | RECIPE_IMPORT | "Tiramisù" da cucchiaio.it → FAIL (timeout)
+2026-06-27 10:32 | MEAL_PLAN | 2026-06-30 cena → "Pasta al pesto"
+2026-06-27 10:33 | DB_QUERY | list_all_recipes → 0 ricette
+```
+
+**Regole per risparmiare token:**
+- Niente frasi complete: solo verbo + oggetto + esito.
+- Nessuna riga per operazioni di sola lettura banali (list/get senza esito rilevante).
+- Scrivi nel log PRIMA di rispondere all'utente, così se la sessione si chiude il log è già aggiornato.
+- Usa `Bash(echo "..." >> agent.log)` — una chiamata per riga, mai rileggere il log salvo richiesta esplicita.
+
+## Filosofia Cibi: Poco Processati, Ma Pragmatici
+
+**Linea di confine:** rigore dove la ricetta ha importanza organolettica o nutrizionale; praticità dove il processato è equivalente e non sacrifica qualità.
+
+**RIGOROSO (fatto in casa):**
+- Ragù, ragù di lenticchie, soffritti → fondamenta del sapore
+- Sughi di pomodoro, pesto → qualità ingredienti è centrale
+- Brodi (se usati) → estratto di nutrienti
+- Verdure da riscaldare/congelare → preparare in batch
+
+**OK COMPRATO (qualità non degradata):**
+- Pane → variabilità minima, qualità stabile se buona panetteria
+- Pasta (integrale/legumi) → processo industriale non altera nutrimento
+- Riso, cereali, legumi secchi → prodotto grezzo
+- Formaggi, ricotta → comprati freschi
+- Olio, aceto, spezie → base stabile
+- Maionese, senape, conserve → poco impatto finale
+- Verdure surgelate (se stagione non copre) → nutrienti preservati
+- Tofu, tempeh → processato ma proteina pulita
+
+**PRINCIPIO:** Il tempo guadagnato su 30min ricette va a vantaggio della famiglia (meno stress = scelta alimentari migliori). Non è sano stressarsi su surgelati che mantengono nutrienti.
+
 ## Safe-to-Run / Security
 
 - Safe-to-run without confirmation: read-only inspection, the test and lint
