@@ -90,6 +90,22 @@ http://localhost:PORT
 - Varietà proteica: prevalentemente legumi e cereali integrali, con carne/pesce/formaggio/uova 1x/settimana ciascuno
 - Porzioni cena: 4 persone (2 adulti + 2 bimbi piccoli ≈ 3 porzioni adulto)
 
+## Ricette — Siti Supportati per l'Import
+
+La skill `import-recipe` usa `recipe-scrapers` come metodo primario (più veloce e accurato). I siti italiani supportati nativamente:
+
+| Sito | URL |
+|---|---|
+| Giallo Zafferano | `ricette.giallozafferano.it` |
+| Cucchiaio d'Argento | `cucchiaio.it` |
+| Misya | `misya.info` |
+| La Cucina Italiana | `lacucinaitaliana.it` · `lacucinaitaliana.com` |
+| Fatto in Casa da Benedetta | `fattoincasadabenedetta.it` |
+| Ricetta.it | `ricetta.it` |
+| Ricette per Bimby | `ricetteperbimby.it` |
+
+Per siti non in lista la skill fa automaticamente fallback a Chrome (estrazione manuale). In quel caso l'import funziona ugualmente ma è più lento.
+
 ## Ricette — Standardizzazione
 
 Tutte le ricette importate devono essere **sempre**:
