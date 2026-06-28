@@ -11,29 +11,7 @@ Importa la ricetta all'URL: $ARGUMENTS
 Esegui questo comando:
 
 ```bash
-uv run python -c "
-import json, urllib.request
-from recipe_scrapers import scrape_html
-
-url = '$ARGUMENTS'
-req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'})
-try:
-    html = urllib.request.urlopen(req, timeout=10).read().decode('utf-8')
-    s = scrape_html(html, org_url=url)
-    data = {
-        'name': s.title(),
-        'time_min': s.total_time() or None,
-        'servings_raw': s.yields(),
-        'image': s.image(),
-        'ingredients': s.ingredients(),
-        'steps': s.instructions_list(),
-    }
-    try: data['nutrients'] = s.nutrients()
-    except: data['nutrients'] = {}
-    print(json.dumps(data, ensure_ascii=False))
-except Exception as e:
-    print(json.dumps({'error': str(e)}))
-"
+uv run python scripts/scrape_recipe.py '$ARGUMENTS'
 ```
 
 - **Se il JSON non contiene `error`** → usa i dati estratti, vai al passo 3.
