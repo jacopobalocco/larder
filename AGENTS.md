@@ -50,57 +50,24 @@ ruff format .
 
 ## Network
 
-Il Mac è connesso alla rete **Tailscale**. Hostname: `localhost` · IP Tailscale: `TAILSCALE-IP`.
-
-Il server dell'app gira su porta configurata. Per accedere dall'iPhone (anch'esso su Tailscale come `iphone-locale`):
-```
-http://localhost:PORT
-```
+Il server gira sulla porta configurata (default PORT). Per renderlo raggiungibile da altri dispositivi sulla stessa rete:
 
 **Avvio corretto (obbligatorio `--host 0.0.0.0`):**
 ```bash
 uv run python -m uvicorn api.main:app --host 0.0.0.0 --port $PORT
 ```
-Senza `--host 0.0.0.0` il server ascolta solo su localhost e non è raggiungibile da Tailscale.
+Senza `--host 0.0.0.0` il server ascolta solo su localhost.
+
+> Hostname, IP e configurazione di rete locale → `AGENTS.local.md` (non versionato).
 
 ## Famiglia e Piano Alimentare
 
-**Utente:** (vedi AGENTS.local.md)
-**Pranzo:** solo, al lavoro — pasti pratici, trasportabili o da riscaldare, porzione singola
-**Cena:** con la famiglia:
-- **Compagna**
-- **Figlia maggiore** (4 anni) — selettiva, fatica con le verdure visibili; meglio nasconderle o presentarle in modo creativo
-- **Figlio minore** (2 anni) — mangia di tutto
+> Profilo utente, composizione famiglia, allergie, obiettivi nutrizionali e di salute → `AGENTS.local.md` (non versionato).
 
-**Profilo nutrizionale:**
-- Profilo fisico: vedi AGENTS.local.md
-- Allenamento: ~5 mattine/settimana → fabbisogno calorico elevato, alto bisogno proteico
-- Pranzo post-allenamento (o comunque dopo): privilegiare proteine + carboidrati per recupero muscolare
-- Target indicativo: target calorico/proteico: vedi AGENTS.local.md
-
-**Obiettivi di salute (da trainee/GOALS.md — aggiornato 2026-06-29):**
-- Peso target: vedi AGENTS.local.md
-- HRV e obiettivi: vedi AGENTS.local.md
-- Sonno: priorità alta — evitare pasti serali pesanti o infiammatori che compromettano HRV e recupero
-- Strategia: surplus calorico mirato a ipertrofia, non solo aumento di peso
-
-**Allergie e intolleranze:**
-- **Figlio minore (2 anni):** allergico ad anacardi e pistacchi — nessuna ricetta da cena deve contenerli
-
-**Frequenza proteine animali (regola settimanale):**
-- Carne (rossa o bianca): max 1 volta/settimana
-- Pesce: max 1 volta/settimana
-- Formaggio: max 1 volta/settimana
-- Uova: max 1 volta/settimana
-- I restanti pasti devono essere a base di legumi, cereali, verdure, tofu o altre proteine vegetali
-
-**Principi guida:**
-- Cibo sano, prevalentemente mediterraneo
-- Preparazione rapida (≤ 30 min per le cene, idealmente)
-- Per la figlia maggiore: verdure integrate negli impasti, passate o camuffate (es. polpette, sughi, vellutate)
-- Per l'adulto 1: pranzi calorici e proteici per supportare la crescita muscolare
-- Varietà proteica: prevalentemente legumi e cereali integrali, con carne/pesce/formaggio/uova 1x/settimana ciascuno
-- Porzioni cena: 4 persone (2 adulti + 2 bimbi piccoli ≈ 3 porzioni adulto)
+Principi generali dell'app:
+- Cucina prevalentemente mediterranea, preparazione rapida (≤ 30 min per le cene)
+- Varietà proteica: preferenza per legumi e cereali integrali; carne/pesce/formaggio/uova con frequenza limitata
+- Porzioni cena pensate per famiglia con bambini piccoli
 
 ## Ricette — Siti Supportati per l'Import
 
@@ -150,7 +117,7 @@ Poi aggiorna `image_id` nel payload con `/images/<id>.jpg` **dopo** aver ottenut
 
 ### Dopo il salvataggio
 
-1. Aprire larder in Chrome (`http://localhost:PORT`)
+1. Aprire larder in Chrome (URL locale — vedi `AGENTS.local.md`)
 2. Verificare che il card della ricetta mostri l'immagine (non il placeholder grigio)
 3. **Se l'immagine non appare nel browser:**
    - Controllare che `image_id` nel DB sia `/images/<id>.jpg` (path locale)
