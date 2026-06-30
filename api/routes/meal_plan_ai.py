@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List, Optional
 
 import httpx
@@ -9,7 +10,7 @@ from api.database import get_connection
 
 router = APIRouter(prefix="/meal-plan", tags=["meal-plan-ai"])
 
-HOME_AI_URL = "http://localhost:8766/complete"
+HOME_AI_URL = os.getenv("HOME_AI_URL", "http://localhost:8766/complete")
 
 
 class RecipeInfo(BaseModel):
@@ -153,10 +154,9 @@ def _build_auto_plan_prompt(slots: List[str], recipes: List[RecipeInfo]) -> str:
     return f"""Sei un assistente per la pianificazione alimentare settimanale di una famiglia italiana.
 
 OBIETTIVI DI SALUTE (adulto 1):
-- Peso attuale XX kg / XX cm (BMI 18.5 — sottopeso). Target: 64 kg entro 2026-12-29.
-- Strategia: surplus calorico con focus su ipertrofia. Fabbisogno target calorico/proteico: vedi AGENTS.local.md.
+- Obiettivo: aumento massa muscolare con surplus calorico, focus ipertrofia.
 - Allenamento ~5 mattine/settimana: i pranzi sono post-allenamento → privilegiare carboidrati e proteine per il recupero.
-- HRV target ≥ 36 ms (zona BALANCED): preferire pasti serali leggeri e anti-infiammatori per non compromettere il sonno e il recupero.
+- Preferire pasti serali leggeri e anti-infiammatori per favorire sonno e recupero.
 
 FAMIGLIA:
 - Figlia maggiore (4 anni): selettiva, preferire verdure integrate o camuffate.
@@ -180,7 +180,7 @@ RICETTE DISPONIBILI (scegli solo da questa lista):
 SLOT DA PIANIFICARE:
 {json.dumps(slots, ensure_ascii=False)}
 
-OBIETTIVO: scegli le ricette più adatte da questa lista e assegnale agli slot rispettando tutti i vincoli. Non è obbligatorio riempire ogni slot se le ricette non bastano. Privilegia varietà e bilanciamento nutrizionale allineato agli obiettivi del database. Per i pranzi preferisci ricette ad alto contenuto di carboidrati e proteine.
+OBIETTIVO: scegli le ricette più adatte da questa lista e assegnale agli slot rispettando tutti i vincoli. Non è obbligatorio riempire ogni slot se le ricette non bastano. Privilegia varietà e bilanciamento nutrizionale. Per i pranzi preferisci ricette ad alto contenuto di carboidrati e proteine.
 
 OUTPUT: SOLO JSON valido, nessun testo aggiuntivo, nessun markdown.
 Formato: {{"slot": [id1, id2], ...}}

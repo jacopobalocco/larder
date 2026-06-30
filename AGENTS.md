@@ -50,15 +50,15 @@ ruff format .
 
 ## Network
 
-Il server gira sulla porta configurata (default PORT). Per renderlo raggiungibile da altri dispositivi sulla stessa rete:
+Per rendere il server raggiungibile da altri dispositivi sulla stessa rete, avviarlo con `--host 0.0.0.0`:
 
-**Avvio corretto (obbligatorio `--host 0.0.0.0`):**
 ```bash
 uv run python -m uvicorn api.main:app --host 0.0.0.0 --port $PORT
 ```
-Senza `--host 0.0.0.0` il server ascolta solo su localhost.
 
-> Hostname, IP e configurazione di rete locale → `AGENTS.local.md` (non versionato).
+`HOME_AI_URL` (endpoint AI per i suggerimenti piano pasti) si configura via variabile d'ambiente; default `http://localhost:8766/complete`.
+
+> Porta, hostname, IP e configurazione di rete locale → `AGENTS.local.md` (non versionato).
 
 ## Famiglia e Piano Alimentare
 

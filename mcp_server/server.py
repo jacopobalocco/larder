@@ -35,7 +35,7 @@ def _fmt_recipe(r, ingredients, steps) -> str:
 
 @mcp.tool()
 def list_all_recipes() -> str:
-    """Elenca tutte le ricette salvate nel database con categoria e tempo)."""
+    """Elenca tutte le ricette salvate nel database (con categoria e tempo)."""
     init_db()
     conn = get_connection()
     rows = conn.execute(

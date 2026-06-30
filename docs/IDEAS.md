@@ -13,6 +13,16 @@ Utile per stampa / spesa offline.
 
 Form per creare una ricetta manualmente (titolo, categoria, tempo, kcal, descrizione) con selezione ingredienti inline (nome, quantità, unità, gruppo macro). La ricetta salvata appare nell'elenco insieme a quelle importate automaticamente via recipe-scrapers, senza distinzione di origine.
 
+## Integrazione dati mensa pubblica
+
+Importare i menu settimanali da mense con dati pubblici e suggerire il pranzo in automatico basandosi su ciò che è disponibile quel giorno, evitando duplicati con la cena.
+
+Riferimento mensa Tenaris (Pellegrini): `https://tenaris.pellegrinicloud.it/menu/1782805956/0/1605`
+
+## Prompt di allocazione personalizzabile
+
+Permettere all'utente di modificare il prompt usato dall'AI per generare il piano pasti settimanale: es. regole dietetiche specifiche, preferenze stagionali, vincoli di budget, obiettivi macro. Il prompt personalizzato sovrascrive quello di default e viene salvato nel profilo utente.
+
 ## Dashboard utente e autenticazione
 
 Meccanismo di login (JWT o sessioni) + dashboard personale con statistiche:

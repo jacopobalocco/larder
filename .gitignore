@@ -8,3 +8,4 @@ data/recipes.db
 dist/
 .DS_Store
 AGENTS.local.md
+agent.log
