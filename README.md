@@ -1,39 +1,75 @@
 # larder
 
-<!-- TODO: One-paragraph description of what larder is and who it's for. -->
-A greenfield project scaffolded with an agent-ready baseline.
+A personal recipe manager and weekly meal planner, built with FastAPI and a lightweight single-file frontend. Designed for family use with an AI-assisted meal planning feature.
 
-## Status
+## Features
 
-Early scaffolding stage — no application code yet. The repository ships an
-agent-ready baseline (portable instructions, secret hygiene, CI, pre-commit,
-sandbox policy) so development starts on solid footing.
+- **Recipe library** — import recipes from supported Italian cooking sites via URL (powered by `recipe-scrapers`), or add them manually. Each recipe stores ingredients, steps, macros and a local photo.
+- **Weekly meal plan** — drag-and-drop calendar UI for assigning recipes to lunch/dinner slots across the week.
+- **AI auto-plan** — one-click weekly plan generation via a local AI endpoint, respecting dietary constraints (protein variety limits, allergies, nutritional goals).
+- **PDF export** — single-page weekly grid PDF with recipe photos, one column per meal type.
+- **Mobile UI** — separate responsive view accessible from any device on the local network.
+- **MCP server** — Claude-compatible tool server for agent-driven recipe and meal-plan operations.
+
+## Supported import sites
+
+| Site | URL |
+|---|---|
+| Giallo Zafferano | `ricette.giallozafferano.it` |
+| Cucchiaio d'Argento | `cucchiaio.it` |
+| Misya | `misya.info` |
+| La Cucina Italiana | `lacucinaitaliana.it` |
+| Fatto in Casa da Benedetta | `fattoincasadabenedetta.it` |
+| Ricetta.it | `ricetta.it` |
+| Ricette per Bimby | `ricetteperbimby.it` |
+
+For unsupported sites the importer falls back to browser-based extraction.
+
+## Stack
+
+- **Backend**: Python 3.12, FastAPI, SQLite, uvicorn
+- **Frontend**: Vanilla HTML/JS (no build step)
+- **AI**: local LLM via HTTP (`HOME_AI_URL` env var)
+- **Recipe import**: `recipe-scrapers`, with Chrome browser fallback
+- **PDF**: `fpdf2` + Pillow
+- **Package manager**: `uv`
 
 ## Setup
 
 ```bash
-# TODO: replace with the real toolchain once chosen (e.g. uv / pip).
-# python3 -m venv .venv && source .venv/bin/activate
-# pip install -e .[dev]
+# Install dependencies
+uv sync
 
-# Install pre-commit hooks
-pip install pre-commit && pre-commit install
+# Copy local config and fill in values
+cp .env.example .env
+
+# Start the server (use --host 0.0.0.0 to expose on the local network)
+uv run python -m uvicorn api.main:app --host 0.0.0.0 --port 8765
 ```
 
-## Usage
+Open `http://localhost:8765` in your browser.
 
-<!-- TODO: document how to run the project once it exists. -->
+### MCP server (Claude integration)
+
+```bash
+uv run python mcp_server/server.py
+```
+
+## Configuration
+
+| Env var | Default | Description |
+|---|---|---|
+| `HOME_AI_URL` | `http://localhost:8766/complete` | Local AI endpoint for meal plan generation |
 
 ## Development
 
-- **Lint**: `ruff check .`
-- **Format**: `ruff format .`
-- **Test**: <!-- TODO: e.g. `pytest -q` once a test suite exists -->
+```bash
+ruff check .    # lint
+ruff format .   # format
+```
 
-See [`AGENTS.md`](AGENTS.md) for agent/contributor instructions,
-[`ARCHITECTURE.md`](ARCHITECTURE.md) for the high-level design, and
-[`docs/agent-execution.md`](docs/agent-execution.md) for the execution/sandbox policy.
+See [`AGENTS.md`](AGENTS.md) for agent/contributor instructions and [`docs/`](docs/) for architecture notes and ADRs.
 
 ## License
 
-See [`LICENSE`](LICENSE).
+Proprietary — see [`LICENSE`](LICENSE). Contributors retain no commercial rights; see the inline CLA.
