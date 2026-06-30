@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Test: Nutrition Display with Null Values</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .pass { color: green; }
+    .fail { color: red; }
+    .test { margin: 10px 0; padding: 10px; border-left: 4px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>Test: Nutrition Display</h1>
+  <div id="results"></div>
+
+  <script>
+    // Test function to format nutrition values
+    function formatNutritionValue(value, unit) {
+      return value != null ? `${value} ${unit}` : '-';
+    }
+
+    const tests = [
+      {
+        name: "Calorie: null should display as '-'",
+        value: null,
+        unit: 'kcal',
+        expected: '-',
+      },
+      {
+        name: "Calorie: 650 should display as '650 kcal'",
+        value: 650,
+        unit: 'kcal',
+        expected: '650 kcal',
+      },
+      {
+        name: "Proteine: null should display as '-'",
+        value: null,
+        unit: 'g',
+        expected: '-',
+      },
+      {
+        name: "Proteine: 45 should display as '45 g'",
+        value: 45,
+        unit: 'g',
+        expected: '45 g',
+      },
+      {
+        name: "Grassi: 0 should display as '0 g'",
+        value: 0,
+        unit: 'g',
+        expected: '0 g',
+      },
+    ];
+
+    let passed = 0;
+    let failed = 0;
+
+    tests.forEach(test => {
+      const result = formatNutritionValue(test.value, test.unit);
+      const success = result === test.expected;
+
+      if (success) {
+        passed++;
+        console.log(`✓ ${test.name}`);
+      } else {
+        failed++;
+        console.log(`✗ ${test.name} - got "${result}", expected "${test.expected}"`);
+      }
+
+      document.getElementById('results').innerHTML += `
+        <div class="test ${success ? 'pass' : 'fail'}">
+          ${success ? '✓' : '✗'} ${test.name}<br>
+          Got: <strong>"${result}"</strong> | Expected: <strong>"${test.expected}"</strong>
+        </div>
+      `;
+    });
+
+    console.log(`\nResults: ${passed} passed, ${failed} failed`);
+    document.getElementById('results').innerHTML += `<h2 style="margin-top:20px;">${passed} passed, ${failed} failed</h2>`;
+  </script>
+</body>
+</html>

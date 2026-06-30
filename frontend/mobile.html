@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100vh;}
+body{background:#EDE6DA;font-family:'Karla',sans-serif;color:#33302A;-webkit-tap-highlight-color:transparent;}
+button{font-family:'Karla',sans-serif;}
+.ph{position:relative;overflow:hidden;background:repeating-linear-gradient(135deg,#E7DFD0 0 10px,#DFD6C5 10px 20px);}
+.ph>em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:#AB9F8C;text-transform:uppercase;font-style:normal;pointer-events:none;text-align:center;padding:4px;}
+::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+let DATA = [];
+
+async function loadRecipes() {
+  const res = await fetch('/recipes/');
+  const raw = await res.json();
+  DATA = raw.map(r => ({
+    id:    String(r.id),
+    title: r.name,
+    cat:   r.category,
+    time:  r.time_min,
+    serv:  r.servings,
+    kcal:  r.kcal,
+    p:     r.protein_g,
+    c:     r.carbs_g,
+    f:     r.fat_g,
+    fib:   r.fiber_g,
+    meat:  r.has_meat,
+    img:   r.image_id,
+    lbl:   r.name.toLowerCase(),
+    tags:  r.tags,
+    ing:   r.ingredients.map(i => [i.name, i.quantity, i.unit, i.macro_group]),
+    steps: r.steps,
+  }));
+}
+
+const CAT = {
+  primi:        {label:'Primi',        color:'#C2745A'},
+  secondi:      {label:'Secondi',      color:'#9C6B3F'},
+  contorni:     {label:'Contorni',     color:'#8A9A6F'},
+  zuppe:        {label:'Zuppe',        color:'#C99A4E'},
+  piatto_unico: {label:'Piatto unico', color:'#7A6EA8'},
+  dolci:        {label:'Dolci',        color:'#A8657A'},
+  colazione:    {label:'Colazione',    color:'#6E9285'},
+};
+
+const GORDER = ['Verdure','Proteine','Pasta/Riso','Latticini','Condimenti','Spezie','Altro'];
+const GCOLOR = {
+  Verdure:'#8A9A6F', Proteine:'#B05E42', 'Pasta/Riso':'#C99A4E',
+  Latticini:'#D9C9A3', Condimenti:'#9C8456', Spezie:'#A8657A', Altro:'#9a9183',
+};
+const PANTRY = {Spezie:true, Condimenti:true};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+let state = {
+  screen: 'libreria',
+  filter: 'Tutte',
+  modal: null,
+  servings: 4,
+  pool: [],
+  plan: {},
+  excluded: {},
+  removed: {},
+  collapsed: {},
+};
+
+function setState(updates) {
+  const prevPlan = state.plan;
+  if (typeof updates === 'function') updates = updates(state);
+  state = {...state, ...updates};
+  render();
+  if (state.plan !== prevPlan) scheduleSyncPlan();
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+
+function rec(id) { return DATA.find(r => r.id == id); }
+function placedIds() { return Object.values(state.plan).flat(); }
+function isAdded(id) { return state.pool.includes(id) || placedIds().includes(id); }
+
+function clonePlan(p) {
+  const o = {};
+  Object.keys(p).forEach(k => o[k] = [...p[k]]);
+  return o;
+}
+
+function imgUrl(img, w) {
+  if (!img) return '';
+  if (img.startsWith('http') || img.startsWith('/')) return img;
+  return `https://images.unsplash.com/photo-${img}?w=${w}&q=80&auto=format&fit=crop`;
+}
+
+function isoDate(d) { return d.toISOString().slice(0,10); }
+
+function getDays() {
+  const ABBR  = ['dom','lun','mar','mer','gio','ven','sab'];
+  const FULL  = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const MONTHS = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const t = new Date(); t.setHours(12,0,0,0);
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(t); d.setDate(t.getDate()+i);
+    return {
+      key: ABBR[d.getDay()],
+      full: FULL[d.getDay()],
+      date: String(d.getDate()),
+      month: MONTHS[d.getMonth()],
+      dateObj: d,
+      isToday: i === 0,
+    };
+  });
+}
+
+function fmtAmt(qty, unit) {
+  if (qty == null) return unit || 'q.b.';
+  const tight = ['g','ml','kg','L'];
+  let v = qty;
+  if (v >= 50) v = Math.round(v/5)*5;
+  else if (v >= 10) v = Math.round(v);
+  else v = Math.round(v*2)/2;
+  return tight.includes(unit) ? (v+unit) : (unit ? v+' '+unit : ''+v);
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+
+function toggleWeek(id) {
+  setState(s => {
+    if (isAdded(id)) {
+      const plan = clonePlan(s.plan);
+      Object.keys(plan).forEach(k => { plan[k] = plan[k].filter(x => x !== id); if (!plan[k].length) delete plan[k]; });
+      return {pool: s.pool.filter(x => x !== id), plan};
+    }
+    return {pool: [...s.pool, id]};
+  });
+}
+
+function clearCalendar() {
+  setState(s => {
+    const all = Object.values(s.plan).flat();
+    return {plan:{}, pool:[...new Set([...s.pool, ...all])]};
+  });
+}
+
+async function autoDistribute() {
+  const slots = [];
+  getDays().forEach(({key}) => { slots.push(key+'-pranzo'); slots.push(key+'-cena'); });
+  const excluded_ids = Object.keys(state.excluded).filter(id => state.excluded[id]).map(Number);
+  let res;
+  try {
+    const resp = await fetch('/meal-plan/auto-plan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({slots, excluded_ids}),
+    });
+    if (!resp.ok) { const t = await resp.text(); throw new Error(t); }
+    res = await resp.json();
+  } catch (err) {
+    alert('Auto-distribuzione fallita: ' + err.message);
+    return;
+  }
+  setState(s => {
+    const plan = {};
+    Object.entries(res.plan).forEach(([slot, ids]) => { plan[slot] = ids.map(String); });
+    const assigned = new Set(Object.values(plan).flat());
+    const pool = s.pool.filter(id => !assigned.has(String(id)));
+    return {plan, pool};
+  });
+}
+
+// ── SHOPPING ──────────────────────────────────────────────────────────────────
+
+function shopGroups() {
+  const ids = placedIds();
+  const map = {};
+  ids.forEach(id => {
+    const r = rec(id); if (!r) return;
+    r.ing.forEach(([name, qty, unit, macro]) => {
+      map[macro] = map[macro] || {};
+      const cur = map[macro][name] || {qty:0, unit:unit, num:false, nn:false};
+      if (qty != null && (unit === cur.unit || !cur.num)) { cur.qty += qty; cur.unit = unit; cur.num = true; }
+      else if (qty == null) { cur.nn = true; cur.unit = cur.unit || unit; }
+      map[macro][name] = cur;
+    });
+  });
+  return GORDER.filter(m => map[m]).map(macro => {
+    const items = Object.keys(map[macro]).map(name => {
+      const o = map[macro][name];
+      return {name, amount: o.num ? fmtAmt(o.qty, o.unit) : fmtAmt(null, o.unit), macro};
+    });
+    return {macro, items};
+  });
+}
+
+// ── PLAN SYNC ─────────────────────────────────────────────────────────────────
+
+let syncTimer = null;
+function scheduleSyncPlan() {
+  clearTimeout(syncTimer);
+  try { localStorage.setItem('larder_plan', JSON.stringify(state.plan)); } catch(_) {}
+  syncTimer = setTimeout(() => syncPlan().catch(() => {}), 600);
+}
+
+async function syncPlan() {
+  const days = getDays();
+  const dayMap = {};
+  days.forEach(d => { dayMap[d.key] = isoDate(d.dateObj); });
+  const allEntries = (await Promise.all(
+    days.map(({dateObj}) => fetch(`/meal-plan/${isoDate(dateObj)}`).then(r => r.ok ? r.json() : []))
+  )).flat();
+  await Promise.all(allEntries.map(e => fetch(`/meal-plan/${e.id}`, {method:'DELETE'})));
+  await Promise.all(
+    Object.entries(state.plan).flatMap(([slotKey, ids]) => {
+      const [dayKey, mealType] = slotKey.split('-');
+      const date = dayMap[dayKey];
+      if (!date) return [];
+      return ids.map(id => fetch('/meal-plan/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({date, meal_type: mealType, recipe_id: Number(id)}),
+      }));
+    })
+  );
+}
+
+async function loadPlan() {
+  const days = getDays();
+  const dayMap = {};
+  days.forEach(d => { dayMap[isoDate(d.dateObj)] = d.key; });
+  const allEntries = (await Promise.all(
+    days.map(({dateObj}) => fetch(`/meal-plan/${isoDate(dateObj)}`).then(r => r.ok ? r.json() : []))
+  )).flat();
+  const plan = {};
+  allEntries.forEach(e => {
+    const dayKey = dayMap[e.date];
+    if (!dayKey || !e.recipe_id) return;
+    const slotKey = `${dayKey}-${e.meal_type}`;
+    (plan[slotKey] = plan[slotKey] || []).push(String(e.recipe_id));
+  });
+  const allPlanned = [...new Set(Object.values(plan).flat())];
+  let storedPool = [];
+  try { storedPool = Object.values(JSON.parse(localStorage.getItem('larder_plan') || '{}')).flat().map(String); } catch(_) {}
+  setState({plan, pool: storedPool.filter(id => !allPlanned.includes(id))});
+}
+
+// ── BUILD: HEADER ─────────────────────────────────────────────────────────────
+
+function buildHeader() {
+  const total = [...new Set([...state.pool, ...placedIds()])].length;
+  const titles = {libreria:'La tua libreria', calendario:'Cosa cuciniamo', spesa:'Lista della spesa'};
+  return `
+    <header style="position:fixed;top:0;left:0;right:0;z-index:50;height:56px;padding:0 16px;background:rgba(237,230,218,.96);backdrop-filter:blur(10px);border-bottom:1px solid #E1D8C9;display:flex;align-items:center;gap:10px;">
+      <span style="font-family:'Spectral',serif;font-weight:700;font-size:24px;letter-spacing:.01em;flex:none;">Larder</span>
+      <span style="flex:1;font-size:13px;font-weight:600;color:#a89e8d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${titles[state.screen]||''}</span>
+      ${total > 0 ? `<span style="background:#33302A;color:#F3EEE6;padding:4px 10px;border-radius:16px;font-size:11.5px;font-weight:700;flex:none;">${total}</span>` : ''}
+    </header>`;
+}
+
+// ── BUILD: BOTTOM NAV ─────────────────────────────────────────────────────────
+
+function buildNav() {
+  const tabs = [
+    {key:'libreria',  icon:'📚', label:'Libreria'},
+    {key:'calendario',icon:'📅', label:'Calendario'},
+    {key:'spesa',     icon:'🛒', label:'Spesa'},
+  ];
+  return `
+    <nav style="position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(237,230,218,.97);backdrop-filter:blur(10px);border-top:1px solid #E1D8C9;display:flex;padding-bottom:env(safe-area-inset-bottom,0px);">
+      ${tabs.map(t => `
+        <button data-action="go-${t.key}" style="flex:1;border:none;background:none;cursor:pointer;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;border-top:2px solid ${state.screen===t.key?'#C2745A':'transparent'};">
+          <span style="font-size:22px;line-height:1;">${t.icon}</span>
+          <span style="font-size:10px;font-weight:700;letter-spacing:.04em;color:${state.screen===t.key?'#C2745A':'#a89e8d'};">${t.label}</span>
+        </button>`).join('')}
+    </nav>`;
+}
+
+// ── BUILD: LIBRERIA ───────────────────────────────────────────────────────────
+
+function buildLibreria() {
+  const cats = ['Tutte','Primi','Secondi','Contorni','Zuppe','Piatto unico','Dolci','Colazione'];
+  const filtersHtml = cats.map(label => {
+    const active = state.filter === label;
+    return `<button data-action="filter" data-filter="${label}" style="white-space:nowrap;font-size:12px;font-weight:600;padding:7px 14px;border-radius:20px;border:1px solid ${active?'#C2745A':'#DDD4C6'};background:${active?'#C2745A':'transparent'};color:${active?'#fff':'#6f675a'};cursor:pointer;flex:none;">${label}</button>`;
+  }).join('');
+
+  const fkey = state.filter === 'Tutte' ? null : Object.keys(CAT).find(k => CAT[k].label === state.filter);
+  const cardsHtml = DATA.filter(r => !fkey || r.cat === fkey).map(r => {
+    const added = isAdded(r.id);
+    const excl = !!state.excluded[r.id];
+    const cat = CAT[r.cat] || {label:r.cat, color:'#9a9183'};
+    return `
+      <div style="background:#FBF8F2;border-radius:12px;overflow:hidden;border:1px solid ${excl?'#E0D7C7':'#EDE5D6'};opacity:${excl?'0.5':'1'};">
+        <div class="ph" data-action="open-recipe" data-id="${r.id}" style="aspect-ratio:4/3;cursor:pointer;">
+          <em>${r.lbl}</em>
+          <div style="position:absolute;inset:0;background-image:url(${imgUrl(r.img,400)});background-size:cover;background-position:center;"></div>
+        </div>
+        <div style="padding:10px 12px 12px;display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">
+            <span style="width:6px;height:6px;border-radius:50%;background:${cat.color};flex:none;"></span>
+            <span style="font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#a89e8d;">${cat.label}${r.time ? ' · '+r.time+'′' : ''}</span>
+          </div>
+          <div data-action="open-recipe" data-id="${r.id}" style="font-family:'Spectral',serif;font-weight:600;font-size:16px;line-height:1.1;color:#33302A;cursor:pointer;margin-bottom:6px;">${r.title}</div>
+          <div style="font-size:10.5px;color:#a89e8d;margin-bottom:9px;">${[r.kcal!=null?r.kcal+' kcal':null, r.p!=null?r.p+'g prot':null].filter(Boolean).join(' · ') || '—'}</div>
+          <button data-action="toggle-week" data-id="${r.id}" style="width:100%;border:none;cursor:pointer;font-size:12px;font-weight:700;padding:8px;border-radius:8px;background:${added?'#EBF0E1':'#33302A'};color:${added?'#6E8350':'#F3EEE6'};border:1px solid ${added?'#D5E0C2':'#33302A'};">${added?'✓ Nella settimana':'+ Aggiungi'}</button>
+          <button data-action="toggle-exclude" data-id="${r.id}" style="width:100%;margin-top:4px;border:none;cursor:pointer;font-size:10.5px;font-weight:600;padding:5px;border-radius:7px;background:${excl?'#F5EAE2':'transparent'};color:${excl?'#B05E42':'#c2b9a7'};">${excl?'↩ Ripristina':'✕ Escludi'}</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div style="padding:12px 0 6px;">
+      <div style="display:flex;gap:7px;overflow-x:auto;padding:0 16px;">${filtersHtml}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 16px 16px;">${cardsHtml}</div>`;
+}
+
+// ── BUILD: CALENDARIO ─────────────────────────────────────────────────────────
+
+function buildCalendario() {
+  const days = getDays();
+
+  const poolHtml = state.pool.length === 0
+    ? `<span style="font-size:12.5px;color:#b3a994;font-style:italic;">Aggiungi piatti dalla Libreria o usa Auto</span>`
+    : state.pool.map(id => {
+        const r = rec(id); if (!r) return '';
+        const cat = CAT[r.cat] || {color:'#9a9183'};
+        return `<div style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #E6DDCD;border-radius:20px;padding:5px 9px 5px 7px;white-space:nowrap;flex:none;">
+          <span style="width:6px;height:6px;border-radius:50%;background:${cat.color};flex:none;"></span>
+          <span style="font-size:12.5px;font-weight:600;font-family:'Spectral',serif;">${r.title}</span>
+          <span data-action="remove-pool" data-id="${id}" style="color:#bcb3a2;font-size:16px;cursor:pointer;line-height:1;">×</span>
+        </div>`;
+      }).join('');
+
+  function buildSlot(slotKey) {
+    const ids = state.plan[slotKey] || [];
+    const isPranzo = slotKey.endsWith('-pranzo');
+    const label = isPranzo ? 'Pranzo' : 'Cena';
+    const labelColor = isPranzo ? '#C2745A' : '#8A9A6F';
+    const dishesHtml = ids.map(id => {
+      const r = rec(id); if (!r) return '';
+      const cat = CAT[r.cat] || {label:r.cat, color:'#9a9183'};
+      return `<div style="display:flex;align-items:center;gap:8px;background:#fff;border-radius:8px;padding:7px 8px;border:1px solid #EDE5D6;">
+        <div class="ph" style="width:34px;height:34px;border-radius:6px;flex:none;">
+          <div style="position:absolute;inset:0;background-image:url(${imgUrl(r.img,80)});background-size:cover;background-position:center;"></div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:${cat.color};">${cat.label}</div>
+          <div style="font-size:13px;font-family:'Spectral',serif;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
+        </div>
+        <span data-action="remove-dish" data-slot="${slotKey}" data-id="${id}" style="width:20px;height:20px;border-radius:50%;background:#EFE7D8;color:#a89e8d;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex:none;line-height:1;">×</span>
+      </div>`;
+    }).join('');
+    const addBtn = state.pool.length > 0
+      ? `<button data-action="open-assign" data-slot="${slotKey}" style="width:100%;border:1.5px dashed #D4C9B5;background:transparent;border-radius:8px;padding:7px;font-size:12px;font-weight:600;color:#b3a994;cursor:pointer;margin-top:${ids.length?'6px':'0'};">+ dal pool</button>`
+      : '';
+    return `
+      <div style="margin-bottom:10px;">
+        <div style="font-family:'Spectral',serif;font-weight:600;font-size:14px;color:${labelColor};margin-bottom:5px;">${label}</div>
+        ${dishesHtml}
+        ${addBtn}
+        ${!ids.length && !state.pool.length ? `<div style="font-size:11.5px;color:#c2b9a7;font-style:italic;padding:6px 0;">vuoto</div>` : ''}
+      </div>`;
+  }
+
+  const daysHtml = days.map(({key, full, date, month, isToday}) => `
+    <div style="background:#FBF8F2;border-radius:14px;padding:14px;border:1.5px solid ${isToday?'#C2745A':'#EDE5D6'};">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${isToday?'#C2745A':'#a89e8d'};margin-bottom:12px;">${full} ${date} ${month}${isToday?' · Oggi':''}</div>
+      ${buildSlot(key+'-pranzo')}
+      ${buildSlot(key+'-cena')}
+    </div>`).join('');
+
+  return `
+    <div style="padding:14px 16px 8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#a89e8d;">Da cucinare</div>
+        <button data-action="auto-distribute" style="border:1.5px solid #C2745A;background:#FBF8F2;color:#B05E42;border-radius:20px;font-size:12px;font-weight:700;padding:7px 14px;cursor:pointer;">✨ Auto-distribuisci</button>
+      </div>
+      <div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:12px;">${poolHtml}</div>
+      <button data-action="clear-calendar" style="width:100%;border:1px solid #E0D7C7;background:transparent;border-radius:10px;font-size:12px;font-weight:600;color:#a89e8d;padding:8px;cursor:pointer;margin-bottom:4px;">✕ Svuota calendario</button>
+    </div>
+    <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;">${daysHtml}</div>`;
+}
+
+// ── BUILD: SPESA ──────────────────────────────────────────────────────────────
+
+function buildSpesa() {
+  const groups = shopGroups();
+  if (!placedIds().length) {
+    return `<div style="padding:60px 24px;text-align:center;color:#a89e8d;font-size:15px;line-height:1.6;">Assegna dei piatti al calendario per generare la lista della spesa.</div>`;
+  }
+  const html = groups.map(g => {
+    const open = !state.collapsed[g.macro];
+    const color = GCOLOR[g.macro];
+    const itemsHtml = g.items.map(it => {
+      const key = g.macro+'|'+it.name;
+      const on = !state.removed[key];
+      return `<div data-action="toggle-item" data-key="${key}" style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #EFE7D8;cursor:pointer;">
+        <span style="width:22px;height:22px;border-radius:6px;border:1.5px solid ${on?color:'#cdc4b2'};background:${on?color:'transparent'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none;">${on?'✓':''}</span>
+        <span style="font-size:13.5px;font-weight:600;color:${on?'#B05E42':'#c2b9a7'};min-width:56px;${on?'':'text-decoration:line-through;'}">${it.amount}</span>
+        <span style="font-size:13.5px;color:${on?'#4d473c':'#c2b9a7'};${on?'':'text-decoration:line-through;'}">${it.name}</span>
+      </div>`;
+    }).join('');
+    return `
+      <div style="background:#FBF8F2;border:1px solid #EAE1D1;border-radius:14px;overflow:hidden;margin-bottom:10px;">
+        <div data-action="toggle-group" data-macro="${g.macro}" style="display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;">
+          <span style="font-size:12px;color:#b3a994;transform:rotate(${open?'90deg':'0deg'});display:inline-block;">${open?'▾':'▸'}</span>
+          <span style="width:9px;height:9px;border-radius:3px;background:${color};"></span>
+          <span style="font-family:'Spectral',serif;font-weight:600;font-size:20px;flex:1;">${g.macro}</span>
+          <span style="font-size:11px;color:#a89e8d;">${g.items.length} voci</span>
+          ${PANTRY[g.macro] ? `<span style="font-size:10px;font-weight:700;color:#B89A5B;background:#F2E9D2;padding:3px 8px;border-radius:12px;">dispensa</span>` : ''}
+        </div>
+        ${open ? `<div style="padding:0 16px 8px;">${itemsHtml}</div>` : ''}
+      </div>`;
+  }).join('');
+  return `<div style="padding:12px 16px 16px;">${html}</div>`;
+}
+
+// ── BUILD: RECIPE MODAL ───────────────────────────────────────────────────────
+
+function buildRecipeModal(id) {
+  const r = rec(id); if (!r) return '';
+  const added = isAdded(id);
+  const cat = CAT[r.cat] || {label:r.cat, color:'#9a9183'};
+  const factor = state.servings / (r.serv || 4);
+  const ingsHtml = r.ing.map(([name, qty, unit]) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid #EFE7D8;">
+      <span style="font-size:14px;">${name}</span>
+      <span style="font-size:13px;font-weight:600;color:#B05E42;">${fmtAmt(qty?qty*factor:null,unit)}</span>
+    </div>`).join('');
+  const stepsHtml = r.steps.map((s,i) =>
+    `<div style="display:flex;gap:10px;margin-bottom:12px;">
+      <span style="width:22px;height:22px;border-radius:50%;background:#C2745A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none;">${i+1}</span>
+      <span style="font-size:14px;line-height:1.55;color:#4d473c;">${s}</span>
+    </div>`).join('');
+  return `
+    <div data-action="close-modal" style="position:fixed;inset:0;z-index:200;background:rgba(51,48,42,.55);">
+      <div onclick="event.stopPropagation()" style="position:absolute;bottom:0;left:0;right:0;max-height:92vh;background:#FBF8F2;border-radius:18px 18px 0 0;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px);">
+        <div style="position:sticky;top:0;background:#FBF8F2;padding:14px 16px 0;display:flex;justify-content:flex-end;">
+          <button data-action="close-modal" style="border:none;background:#EDE6DA;border-radius:50%;width:32px;height:32px;font-size:18px;line-height:1;cursor:pointer;color:#6f675a;">×</button>
+        </div>
+        <div class="ph" style="margin:4px 16px 0;border-radius:12px;aspect-ratio:16/9;overflow:hidden;">
+          <em>${r.lbl}</em>
+          <div style="position:absolute;inset:0;background-image:url(${imgUrl(r.img,800)});background-size:cover;background-position:center;"></div>
+        </div>
+        <div style="padding:14px 16px 8px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:${cat.color};"></span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#a89e8d;">${cat.label}${r.time?' · '+r.time+'′':''}</span>
+          </div>
+          <h2 style="font-family:'Spectral',serif;font-weight:600;font-size:24px;line-height:1.1;margin-bottom:6px;">${r.title}</h2>
+          <div style="font-size:12px;color:#a89e8d;margin-bottom:14px;">${[r.kcal!=null?r.kcal+' kcal':null,r.p!=null?r.p+'g proteine':null,r.c!=null?r.c+'g carb':null].filter(Boolean).join(' · ')||'—'}</div>
+          ${r.ing.length ? `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#C2745A;">Ingredienti</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button data-action="dec-servings" style="width:28px;height:28px;border-radius:50%;border:1.5px solid #DDD4C6;background:transparent;font-size:17px;line-height:1;cursor:pointer;">−</button>
+                <span style="font-size:13px;font-weight:600;">${state.servings} pers.</span>
+                <button data-action="inc-servings" style="width:28px;height:28px;border-radius:50%;border:1.5px solid #DDD4C6;background:transparent;font-size:17px;line-height:1;cursor:pointer;">+</button>
+              </div>
+            </div>
+            <div style="margin-bottom:16px;">${ingsHtml}</div>` : ''}
+          ${r.steps.length ? `
+            <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#C2745A;margin-bottom:10px;">Procedimento</div>
+            <div style="margin-bottom:16px;">${stepsHtml}</div>` : ''}
+          <button data-action="toggle-week" data-id="${r.id}" style="width:100%;border:none;cursor:pointer;font-size:14px;font-weight:700;padding:14px;border-radius:12px;background:${added?'#EBF0E1':'#C2745A'};color:${added?'#6E8350':'#fff'};">${added?'✓ Nella settimana — rimuovi':'+ Aggiungi alla settimana'}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── BUILD: ASSIGN MODAL ───────────────────────────────────────────────────────
+
+function buildAssignModal(slot) {
+  const [dayKey, mealType] = slot.split('-');
+  const day = getDays().find(d => d.key === dayKey);
+  const label = `${day ? day.full+' '+day.date : dayKey} — ${mealType}`;
+  const items = state.pool.map(id => {
+    const r = rec(id); if (!r) return '';
+    const cat = CAT[r.cat] || {label:r.cat, color:'#9a9183'};
+    return `
+      <div data-action="assign-to-slot" data-slot="${slot}" data-id="${id}" style="display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid #EFE7D8;cursor:pointer;-webkit-tap-highlight-color:rgba(194,116,90,.1);">
+        <div class="ph" style="width:40px;height:40px;border-radius:8px;flex:none;">
+          <div style="position:absolute;inset:0;background-image:url(${imgUrl(r.img,80)});background-size:cover;background-position:center;"></div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:8.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:${cat.color};">${cat.label}</div>
+          <div style="font-size:14px;font-family:'Spectral',serif;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
+        </div>
+        <span style="color:#C2745A;font-size:22px;font-weight:700;flex:none;">+</span>
+      </div>`;
+  }).join('');
+  return `
+    <div data-action="close-modal" style="position:fixed;inset:0;z-index:200;background:rgba(51,48,42,.55);">
+      <div onclick="event.stopPropagation()" style="position:absolute;bottom:0;left:0;right:0;max-height:70vh;background:#FBF8F2;border-radius:18px 18px 0 0;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px);">
+        <div style="padding:14px 16px 4px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Spectral',serif;font-size:17px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Aggiungi a ${label}</div>
+          <button data-action="close-modal" style="border:none;background:#EDE6DA;border-radius:50%;width:30px;height:30px;font-size:17px;line-height:1;cursor:pointer;color:#6f675a;flex:none;margin-left:10px;">×</button>
+        </div>
+        <div style="padding:0 16px 8px;">${items||'<p style="padding:16px 0;color:#a89e8d;font-style:italic;">Pool vuoto</p>'}</div>
+      </div>
+    </div>`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+
+function render() {
+  let content = '';
+  if (state.screen === 'libreria') content = buildLibreria();
+  else if (state.screen === 'calendario') content = buildCalendario();
+  else content = buildSpesa();
+
+  let modal = '';
+  if (state.modal) {
+    if (state.modal.type === 'recipe') modal = buildRecipeModal(state.modal.id);
+    else if (state.modal.type === 'assign') modal = buildAssignModal(state.modal.slot);
+  }
+
+  document.getElementById('app').innerHTML =
+    buildHeader() +
+    `<main style="padding-top:56px;padding-bottom:calc(60px + env(safe-area-inset-bottom,0px));min-height:100vh;">${content}</main>` +
+    buildNav() +
+    modal;
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────────────────
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const action = el.dataset.action;
+  const id = el.dataset.id;
+  const slot = el.dataset.slot;
+  const key = el.dataset.key;
+  const macro = el.dataset.macro;
+  const filter = el.dataset.filter;
+
+  switch (action) {
+    case 'go-libreria':   setState({screen:'libreria'}); break;
+    case 'go-calendario': setState({screen:'calendario'}); break;
+    case 'go-spesa':      setState({screen:'spesa'}); break;
+
+    case 'filter': setState({filter}); break;
+
+    case 'open-recipe':
+      e.stopPropagation();
+      setState({modal:{type:'recipe',id}, servings: rec(id)?.serv||4});
+      break;
+
+    case 'close-modal': setState({modal:null}); break;
+
+    case 'toggle-week':
+      e.stopPropagation();
+      toggleWeek(id);
+      if (state.modal?.type === 'recipe') setState({modal:null});
+      break;
+
+    case 'toggle-exclude':
+      e.stopPropagation();
+      setState(s => ({excluded:{...s.excluded,[id]:!s.excluded[id]}}));
+      break;
+
+    case 'remove-pool':
+      setState(s => ({pool:s.pool.filter(x=>x!==id)}));
+      break;
+
+    case 'remove-dish':
+      setState(s => {
+        const plan = clonePlan(s.plan);
+        if (plan[slot]) { plan[slot]=plan[slot].filter(x=>x!==id); if(!plan[slot].length) delete plan[slot]; }
+        return {plan, pool:[...s.pool, id]};
+      });
+      break;
+
+    case 'open-assign':
+      setState({modal:{type:'assign',slot}});
+      break;
+
+    case 'assign-to-slot':
+      setState(s => {
+        const plan = clonePlan(s.plan);
+        plan[slot] = [...(plan[slot]||[]), id];
+        const pool = s.pool.filter(x => x !== id);
+        return {plan, pool, modal:null};
+      });
+      break;
+
+    case 'clear-calendar': clearCalendar(); break;
+
+    case 'auto-distribute':
+      autoDistribute().catch(err => console.error('auto-distribute:', err));
+      break;
+
+    case 'toggle-item':
+      setState(s => ({removed:{...s.removed,[key]:!s.removed[key]}}));
+      break;
+
+    case 'toggle-group':
+      setState(s => ({collapsed:{...s.collapsed,[macro]:!s.collapsed[macro]}}));
+      break;
+
+    case 'dec-servings': setState(s => ({servings:Math.max(1,s.servings-1)})); break;
+    case 'inc-servings': setState(s => ({servings:Math.min(12,s.servings+1)})); break;
+  }
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  await loadRecipes();
+  await loadPlan();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

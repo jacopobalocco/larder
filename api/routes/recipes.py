@@ -8,6 +8,7 @@ from api.models import Recipe, RecipeCreate
 
 class RecipePatch(BaseModel):
     image_id: Optional[str] = None
+    category: Optional[str] = None
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -91,8 +92,10 @@ def patch_recipe(recipe_id: int, patch: RecipePatch):
     if not row:
         conn.close()
         raise HTTPException(status_code=404, detail="Recipe not found")
-    if patch.image_id is not None:
-        conn.execute("UPDATE recipes SET image_id=? WHERE id=?", (patch.image_id, recipe_id))
+    fields = {k: v for k, v in {"image_id": patch.image_id, "category": patch.category}.items() if v is not None}
+    if fields:
+        sets = ", ".join(f"{k}=?" for k in fields)
+        conn.execute(f"UPDATE recipes SET {sets} WHERE id=?", (*fields.values(), recipe_id))
         conn.commit()
     result = _load_recipe(conn, conn.execute("SELECT * FROM recipes WHERE id=?", (recipe_id,)).fetchone())
     conn.close()

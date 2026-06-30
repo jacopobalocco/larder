@@ -57,6 +57,12 @@ Il server dell'app gira su porta configurata. Per accedere dall'iPhone (anch'ess
 http://localhost:PORT
 ```
 
+**Avvio corretto (obbligatorio `--host 0.0.0.0`):**
+```bash
+uv run python -m uvicorn api.main:app --host 0.0.0.0 --port $PORT
+```
+Senza `--host 0.0.0.0` il server ascolta solo su localhost e non è raggiungibile da Tailscale.
+
 ## Famiglia e Piano Alimentare
 
 **Utente:** (vedi AGENTS.local.md)
@@ -67,10 +73,16 @@ http://localhost:PORT
 - **Figlio minore** (2 anni) — mangia di tutto
 
 **Profilo nutrizionale:**
-- Peso: XX kg · Altezza: 184 cm → sottopeso (BMI ~18.3), obiettivo: aumento massa
+- Profilo fisico: vedi AGENTS.local.md
 - Allenamento: ~5 mattine/settimana → fabbisogno calorico elevato, alto bisogno proteico
 - Pranzo post-allenamento (o comunque dopo): privilegiare proteine + carboidrati per recupero muscolare
 - Target indicativo: target calorico/proteico: vedi AGENTS.local.md
+
+**Obiettivi di salute (da trainee/GOALS.md — aggiornato 2026-06-29):**
+- Peso target: vedi AGENTS.local.md
+- HRV e obiettivi: vedi AGENTS.local.md
+- Sonno: priorità alta — evitare pasti serali pesanti o infiammatori che compromettano HRV e recupero
+- Strategia: surplus calorico mirato a ipertrofia, non solo aumento di peso
 
 **Allergie e intolleranze:**
 - **Figlio minore (2 anni):** allergico ad anacardi e pistacchi — nessuna ricetta da cena deve contenerli
