@@ -5,7 +5,7 @@
 
 ## Context
 
-larder ha bisogno di un LLM per distribuire automaticamente le ricette settimanali rispettando i vincoli familiari (frequenza proteine animali, allergie, preferenze di Arianna). Le opzioni considerate:
+larder ha bisogno di un LLM per distribuire automaticamente le ricette settimanali rispettando i vincoli familiari (frequenza proteine animali, allergie, preferenze nutrizionali). Le opzioni considerate:
 
 - **Algoritmo Python deterministico** — zero latenza, ma non aggiunge conoscenza né flessibilità al ragionamento.
 - **Ollama locale** — privacy totale, ma latenza ~5s su Mac mini M2 con modelli capaci; occupa RAM anche idle.

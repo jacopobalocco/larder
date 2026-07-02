@@ -9,3 +9,5 @@ dist/
 .DS_Store
 AGENTS.local.md
 agent.log
+meal_plan_7days.md
+.claude/settings.local.json

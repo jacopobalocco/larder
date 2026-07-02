@@ -11,6 +11,10 @@ from api.database import get_connection
 router = APIRouter(prefix="/meal-plan", tags=["meal-plan-ai"])
 
 HOME_AI_URL = os.getenv("HOME_AI_URL", "http://localhost:8766/complete")
+FAMILY_PROFILE = os.getenv(
+    "FAMILY_PROFILE",
+    "Nessun profilo familiare configurato: nessun vincolo di età, allergia o obiettivo di salute noto.",
+)
 
 
 class RecipeInfo(BaseModel):
@@ -59,9 +63,7 @@ def _build_prompt(slots: List[str], recipes: List[RecipeInfo]) -> str:
     return f"""Sei un assistente per la pianificazione alimentare di una famiglia italiana.
 
 FAMIGLIA:
-- Adulto 1 (obiettivo aumento massa muscolare): pranzi post-allenamento ad alto apporto proteico e calorico.
-- Figlia maggiore (4 anni): selettiva, preferire ricette con verdure integrate o camuffate.
-- Figlio minore (2 anni): ALLERGIA GRAVE — nessuna ricetta deve contenere anacardi o pistacchi.
+{FAMILY_PROFILE}
 
 VINCOLI SETTIMANALI (obbligatori, conteggiati su tutti gli slot insieme):
 - Carne (rossa o bianca): max 1 ricetta in tutta la settimana
@@ -153,15 +155,8 @@ def _build_auto_plan_prompt(slots: List[str], recipes: List[RecipeInfo]) -> str:
 
     return f"""Sei un assistente per la pianificazione alimentare settimanale di una famiglia italiana.
 
-OBIETTIVI DI SALUTE (adulto 1):
-- Obiettivo: aumento massa muscolare con surplus calorico, focus ipertrofia.
-- Allenamento ~5 mattine/settimana: i pranzi sono post-allenamento → privilegiare carboidrati e proteine per il recupero.
-- Preferire pasti serali leggeri e anti-infiammatori per favorire sonno e recupero.
-
 FAMIGLIA:
-- Figlia maggiore (4 anni): selettiva, preferire verdure integrate o camuffate.
-- Figlio minore (2 anni): ALLERGIA GRAVE — nessuna ricetta con anacardi o pistacchi.
-- Porzioni: 4 persone (2 adulti + 2 bambini ≈ 3 porzioni adulto).
+{FAMILY_PROFILE}
 
 VINCOLI SETTIMANALI (obbligatori, su tutti gli slot):
 - Carne (rossa o bianca): max 1 ricetta in tutta la settimana
