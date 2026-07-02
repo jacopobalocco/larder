@@ -29,7 +29,7 @@ For unsupported sites the importer falls back to browser-based extraction.
 
 - **Backend**: Python 3.12, FastAPI, SQLite, uvicorn
 - **Frontend**: Vanilla HTML/JS (no build step)
-- **AI**: local LLM via HTTP (`HOME_AI_URL` env var)
+- **AI**: Groq LLM via the official SDK (`GROQ_API_KEY` env var)
 - **Recipe import**: `recipe-scrapers`, with Chrome browser fallback
 - **PDF**: `fpdf2` + Pillow
 - **Package manager**: `uv`
@@ -59,7 +59,8 @@ uv run python mcp_server/server.py
 
 | Env var | Default | Description |
 |---|---|---|
-| `HOME_AI_URL` | `http://localhost:8766/complete` | Local AI endpoint for meal plan generation |
+| `GROQ_API_KEY` | — (required for AI features) | API key for the Groq LLM, used by meal plan auto-generation |
+| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model used for meal plan auto-generation |
 
 ## Development
 

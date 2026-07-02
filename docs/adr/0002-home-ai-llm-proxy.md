@@ -1,6 +1,6 @@
 # ADR-0002: Proxy LLM esterno tramite servizio home-ai
 
-- **Status**: Accepted
+- **Status**: Superseded by ADR-0003
 - **Date**: 2026-06-28
 
 ## Context

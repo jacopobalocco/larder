@@ -19,10 +19,6 @@ Importare i menu settimanali da mense con dati pubblici e suggerire il pranzo in
 
 Riferimento mensa Tenaris (Pellegrini): `https://tenaris.pellegrinicloud.it/menu/1782805956/0/1605`
 
-## Rimozione home-ai: integrazione diretta Groq
-
-Eliminare la dipendenza dal proxy `home-ai` (endpoint `HOME_AI_URL`). Portare la chiamata AI direttamente in larder usando l'SDK Groq (`groq` Python package). La chiave API va in `.env` come `GROQ_API_KEY`. Questo semplifica il deploy e rimuove un punto di fallimento esterno.
-
 ## Prompt di allocazione personalizzabile
 
 Permettere all'utente di modificare il prompt usato dall'AI per generare il piano pasti settimanale: es. regole dietetiche specifiche, preferenze stagionali, vincoli di budget, obiettivi macro. Il prompt personalizzato sovrascrive quello di default e viene salvato nel profilo utente.

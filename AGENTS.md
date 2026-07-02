@@ -9,20 +9,27 @@ through the `CLAUDE.md` symlink. Keep it concise (< 200 lines).
 <!-- TODO: One or two sentences describing what this project does and who uses it. -->
 `larder` — greenfield project scaffolded with an agent-ready baseline.
 
-## Build · Test · Lint
+## Build · Test · Lint · Avvio Stack
 
-Lint/format are configured (ruff, see `pyproject.toml`). Install and test
-commands are still TODO until the toolchain and a test suite are chosen.
+Lint/format are configured (ruff, see `pyproject.toml`). No automated test
+suite yet (only `tests/test_nutrition_display.html`, manual).
 
 ```bash
-# Install dependencies
-# TODO: e.g. `uv sync` or `pip install -e .[dev]`
+# Installa le dipendenze
+uv sync
 
-# Build (if applicable)
-# TODO: e.g. `uv build`
+# Copia il template env e imposta GROQ_API_KEY (richiesta per l'auto-plan AI:
+# https://console.groq.com/keys)
+cp .env.example .env
 
-# Run tests
-# TODO: e.g. `pytest -q`
+# Seed DB + API in background (porta 8000) + MCP server
+make dev
+
+# Solo API, in foreground:
+make api
+
+# Solo MCP server:
+make mcp
 
 # Lint
 ruff check .
@@ -30,6 +37,10 @@ ruff check .
 # Format
 ruff format .
 ```
+
+API su `http://localhost:8000` (docs interattive su `/docs`). Nessun servizio
+esterno richiesto: l'AI del piano pasti chiama Groq direttamente (vedi
+`docs/adr/0003-inline-groq-client.md`).
 
 ## Code Style
 
@@ -55,8 +66,6 @@ Per rendere il server raggiungibile da altri dispositivi sulla stessa rete, avvi
 ```bash
 uv run python -m uvicorn api.main:app --host 0.0.0.0 --port $PORT
 ```
-
-`HOME_AI_URL` (endpoint AI per i suggerimenti piano pasti) si configura via variabile d'ambiente; default `http://localhost:8766/complete`.
 
 > Porta, hostname, IP e configurazione di rete locale → `AGENTS.local.md` (non versionato).
 

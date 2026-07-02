@@ -7,8 +7,10 @@ dependencies = [
     "aiofiles>=25.1.0",
     "fastapi>=0.138.1",
     "fpdf2>=2.8.7",
+    "groq>=1.5.0",
     "mcp>=1.28.0",
     "pydantic>=2.13.4",
+    "python-dotenv>=1.0.1",
     "recipe-scrapers>=15.11.0",
     "uvicorn>=0.49.0",
 ]

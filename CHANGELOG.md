@@ -13,3 +13,12 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Project scaffolding: `README.md`, `pyproject.toml` (ruff config),
   `ARCHITECTURE.md`, ADRs (`docs/adr/`), issue/PR templates, CODEOWNERS,
   Dependabot config, and a devcontainer.
+
+### Changed
+- Meal plan AI generation (`/meal-plan/auto-distribute`, `/meal-plan/auto-plan`)
+  now calls Groq directly via the official SDK instead of proxying through the
+  external `home-ai` service. Configure `GROQ_API_KEY` (required) and
+  `GROQ_MODEL` (optional) in `.env`. See ADR-0003.
+
+### Removed
+- Dependency on the external `home-ai` proxy and the `HOME_AI_URL` env var.

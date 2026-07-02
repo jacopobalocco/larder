@@ -2,19 +2,45 @@ import json
 import os
 from typing import List, Optional
 
-import httpx
 from fastapi import APIRouter, HTTPException
+from groq import AsyncGroq
 from pydantic import BaseModel
 
 from api.database import get_connection
 
 router = APIRouter(prefix="/meal-plan", tags=["meal-plan-ai"])
 
-HOME_AI_URL = os.getenv("HOME_AI_URL", "http://localhost:8766/complete")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 FAMILY_PROFILE = os.getenv(
     "FAMILY_PROFILE",
     "Nessun profilo familiare configurato: nessun vincolo di età, allergia o obiettivo di salute noto.",
 )
+
+_groq_client: Optional[AsyncGroq] = None
+
+
+def _get_groq_client() -> AsyncGroq:
+    global _groq_client
+    if _groq_client is None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="GROQ_API_KEY non configurata")
+        _groq_client = AsyncGroq(api_key=api_key)
+    return _groq_client
+
+
+async def _complete(prompt: str) -> str:
+    try:
+        response = await _get_groq_client().chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Groq non raggiungibile: {e}")
+    return response.choices[0].message.content
 
 
 class RecipeInfo(BaseModel):
@@ -97,19 +123,12 @@ async def auto_distribute(req: AutoDistributeRequest):
         return AutoDistributeResponse(plan={})
 
     prompt = _build_prompt(req.slots, req.recipes)
+    raw = await _complete(prompt)
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            resp = await client.post(HOME_AI_URL, json={"prompt": prompt, "json_mode": True})
-            resp.raise_for_status()
-        except httpx.HTTPError as e:
-            raise HTTPException(status_code=502, detail=f"home-ai non raggiungibile: {e}")
-
-    raw = resp.json().get("result", "")
     try:
         plan = json.loads(raw)
     except json.JSONDecodeError:
-        raise HTTPException(status_code=502, detail="home-ai ha restituito JSON non valido")
+        raise HTTPException(status_code=502, detail="Groq ha restituito JSON non valido")
 
     valid_ids = {r.id for r in req.recipes}
     clean_plan = {}
@@ -211,19 +230,12 @@ async def auto_plan(req: AutoPlanRequest):
         return AutoPlanResponse(plan={})
 
     prompt = _build_auto_plan_prompt(req.slots, recipes)
+    raw = await _complete(prompt)
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        try:
-            resp = await client.post(HOME_AI_URL, json={"prompt": prompt, "json_mode": True})
-            resp.raise_for_status()
-        except httpx.HTTPError as e:
-            raise HTTPException(status_code=502, detail=f"home-ai non raggiungibile: {e}")
-
-    raw = resp.json().get("result", "")
     try:
         plan = json.loads(raw)
     except json.JSONDecodeError:
-        raise HTTPException(status_code=502, detail="home-ai ha restituito JSON non valido")
+        raise HTTPException(status_code=502, detail="Groq ha restituito JSON non valido")
 
     valid_ids = {r.id for r in recipes}
     clean_plan = {}
